@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador — AQVIS</title>
+  <link rel="stylesheet" href="css/global.css">
+  <style>
+    .sim-page {
+      min-height: 100vh;
+      padding-top: 52px;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 60px;
+    }
+    .sim-inner {
+      width: 100%;
+      max-width: 640px;
+      padding: 36px 24px 0;
+    }
+    .treat-feedback {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      margin-top: 4px;
+      min-height: 14px;
+    }
+    .input-error {
+      border-color: #FF4444 !important;
+      box-shadow: 0 0 0 2px rgba(255,68,68,0.15);
+    }
+  </style>
+</head>
+<body>
+
+<div class="recalc-overlay" id="recalc-overlay">
+  <div class="recalc-spinner"></div>
+  <div class="recalc-label">Procesando...</div>
+</div>
+
+<nav class="nav">
+  <div class="nav-brand">AQVIS</div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="nav-btn" onclick="goHome()">← Inicio</button>
+    <button id="theme-toggle" class="nav-btn theme-btn" onclick="toggleTheme()" aria-label="Cambiar tema"></button>
+  </div>
+</nav>
+
+<div class="sim-page">
+  <div class="sim-inner">
+
+    <div id="timeline" class="timeline" style="margin-bottom:32px"></div>
+
+    <!-- ══ PASO 1: ESPACIO ══ -->
+    <div class="wizard-card active" id="step-1">
+      <div class="wc-title">Espacio</div>
+      <div class="wc-desc">Define las dimensiones del recinto rectangular a simular.</div>
+
+      <div class="field-group">
+        <label class="field-label">Dimensiones</label>
+        <div class="field-row-3">
+          <div>
+            <div class="field-wrap">
+              <input class="field-input" type="number" id="w-largo" value="6.0" step="0.1" min="0.5" max="20">
+              <span class="field-unit">m</span>
+            </div>
+            <span class="field-sub">Largo</span>
+          </div>
+          <div>
+            <div class="field-wrap">
+              <input class="field-input" type="number" id="w-ancho" value="4.5" step="0.1" min="0.5" max="20">
+              <span class="field-unit">m</span>
+            </div>
+            <span class="field-sub">Ancho</span>
+          </div>
+          <div>
+            <div class="field-wrap">
+              <input class="field-input" type="number" id="w-alto" value="2.8" step="0.1" min="0.5" max="20">
+              <span class="field-unit">m</span>
+            </div>
+            <span class="field-sub">Altura</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="iso-panel" style="margin-top:20px">
+        <div class="iso-header">
+          <div class="panel-title" style="margin-bottom:0;font-size:9px">Vista isométrica</div>
+          <div class="iso-badge" id="sim-iso-badge">6.0 × 4.5 × 2.8 m</div>
+        </div>
+        <div class="iso-viewport" style="flex:1;min-height:220px">
+          <div class="iso-grid-bg"></div>
+          <div id="three-container" style="position:absolute;inset:0;z-index:1"></div>
+          <div class="iso-dim-lbl" id="sim-iso-dim-lbl">6.0 × 4.5 × 2.8 m</div>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="goToStep(2)">
+        Continuar
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ══ PASO 2: TEMPERATURA ══ -->
+    <div class="wizard-card" id="step-2">
+      <div class="wc-title">Temperatura</div>
+      <div class="wc-desc">La temperatura afecta directamente la velocidad de propagación del sonido en el aire.</div>
+
+      <div class="field-group">
+        <label class="field-label">Temperatura del aire</label>
+        <div class="slider-row">
+          <!-- ✅ Rango: 10–30°C -->
+          <input type="range" id="w-temp" min="10" max="30" value="20"
+            data-val-id="w-temp-val" data-suffix="°C">
+          <span class="slider-val" id="w-temp-val">20°C</span>
+        </div>
+        <div class="note" style="margin-top:14px" id="vsound-preview">c = 343.5 m/s a 20°C</div>
+        <div class="note" style="margin-top:6px;font-size:10px;color:var(--text3)">
+          Rango: 10–30°C (temperaturas típicas de ocupación y recintos sin climatización)
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="goToStep(3)">
+        Continuar
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ══ PASO 3: MATERIALES ══ -->
+    <div class="wizard-card" id="step-3">
+      <div class="wc-title">Materiales</div>
+      <div class="wc-desc">Asigna un material de construcción a cada superficie. Los materiales disponibles se filtran según el tipo de superficie.</div>
+
+      <div class="mode-toggle">
+        <button class="mtog-btn active" id="mtog-library" onclick="setMaterialMode('library')">Biblioteca</button>
+        <button class="mtog-btn" id="mtog-custom" onclick="setMaterialMode('custom')">Custom por banda</button>
+      </div>
+
+      <!-- ✅ Dropdowns generados dinámicamente por buildMaterialDropdowns() -->
+      <div id="lib-rows">
+        <div class="mat-row">
+          <span class="mat-lbl">Piso</span>
+          <select class="mat-select" id="mat-piso" onchange="updateAlphaDisplay(this,'alpha-piso')"></select>
+          <span class="mat-alpha" id="alpha-piso">ᾱ —</span>
+        </div>
+        <div class="mat-row">
+          <span class="mat-lbl">Techo</span>
+          <select class="mat-select" id="mat-techo" onchange="updateAlphaDisplay(this,'alpha-techo')"></select>
+          <span class="mat-alpha" id="alpha-techo">ᾱ —</span>
+        </div>
+        <div class="mat-row">
+          <span class="mat-lbl">Pared 1</span>
+          <select class="mat-select" id="mat-pared1" onchange="updateAlphaDisplay(this,'alpha-pared1')"></select>
+          <span class="mat-alpha" id="alpha-pared1">ᾱ —</span>
+        </div>
+        <div class="mat-row">
+          <span class="mat-lbl">Pared 2</span>
+          <select class="mat-select" id="mat-pared2" onchange="updateAlphaDisplay(this,'alpha-pared2')"></select>
+          <span class="mat-alpha" id="alpha-pared2">ᾱ —</span>
+        </div>
+        <div class="mat-row">
+          <span class="mat-lbl">Pared 3</span>
+          <select class="mat-select" id="mat-pared3" onchange="updateAlphaDisplay(this,'alpha-pared3')"></select>
+          <span class="mat-alpha" id="alpha-pared3">ᾱ —</span>
+        </div>
+        <div class="mat-row">
+          <span class="mat-lbl">Pared 4</span>
+          <select class="mat-select" id="mat-pared4" onchange="updateAlphaDisplay(this,'alpha-pared4')"></select>
+          <span class="mat-alpha" id="alpha-pared4">ᾱ —</span>
+        </div>
+      </div>
+
+      <div id="custom-note" style="display:none">
+        <div class="note">Los coeficientes por banda de octava se ingresarán en el siguiente paso.</div>
+      </div>
+
+      <button class="btn-primary" onclick="afterMaterials()">
+        Continuar
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ══ PASO 4: ABSORCIÓN CUSTOM ══ -->
+    <div class="wizard-card" id="step-4">
+      <div class="wc-title">Absorción</div>
+      <div class="wc-desc">Ingresa los coeficientes de absorción por banda de octava para cada superficie. Valores entre 0.00 y 1.00.</div>
+
+      <div style="overflow-x:auto">
+        <table class="abs-table">
+          <thead>
+            <tr>
+              <th>Superficie</th>
+              <th>125 Hz</th><th>250 Hz</th><th>500 Hz</th>
+              <th>1k Hz</th><th>2k Hz</th><th>4k Hz</th>
+            </tr>
+          </thead>
+          <tbody id="abs-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="note" style="margin-top:14px">
+        Fuente sugerida: FADU-UdelaR (2012) / Bies &amp; Hansen (2024)
+      </div>
+
+      <button class="btn-primary" onclick="afterCustomAbsorption()">
+        Continuar
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ══ PASO 5: TRATAMIENTO YES/NO ══ -->
+    <div class="wizard-card" id="step-5">
+      <div class="wc-title">Tratamiento</div>
+      <div class="wc-desc">¿El recinto cuenta con materiales de tratamiento acústico adicionales a la construcción base?</div>
+
+      <div class="yn-grid">
+        <div class="yn-card" id="yn-yes" onclick="selectTreatment(true)">
+          <div class="yn-label">Sí</div>
+          <div class="yn-desc">paneles, espuma, alfombra, cortinas...</div>
+        </div>
+        <div class="yn-card" id="yn-no" onclick="selectTreatment(false)">
+          <div class="yn-label">No</div>
+          <div class="yn-desc">solo materiales de construcción</div>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="treat-continue-btn"
+        style="display:none" onclick="continueTreatment()">
+        Continuar
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ══ PASO 6: TRATAMIENTO DETALLE ══ -->
+    <div class="wizard-card" id="step-6">
+      <div class="wc-title">Detalle de tratamiento</div>
+      <div class="wc-desc">Selecciona el tipo de tratamiento y los m² que ocupa en cada superficie. Los materiales disponibles se filtran por tipo de superficie.</div>
+
+      <!-- ✅ Dropdowns generados por buildTreatmentDropdowns() + validación m² -->
+      <div id="treat-rows">
+        <div class="mat-row" style="grid-template-columns:72px 1fr 110px;margin-bottom:12px">
+          <span class="mat-lbl">Piso</span>
+          <select class="mat-select" id="treat-mat-piso"></select>
+          <div>
+            <div class="field-wrap">
+              <input class="field-input" type="number" id="treat-m2-piso" value="0" min="0" step="0.1" style="padding-right:28px">
+              <span class="field-unit">m²</span>
+            </div>
+            <div class="treat-feedback"></div>
+          </div>
+        </div>
+
+        <div class="mat-row" style="grid-template-columns:72px 1fr 110px;margin-bottom:12px">
+          <span class="mat-lbl">Techo</span>
+          <select class="mat-select" id="treat-mat-techo"></select>
+          <div>
+            <div class="field-wrap">
+              <input class="field-input" type="number" id="treat-m2-techo" value="0" min="0" step="0.1" style="padding-right:28px">
+              <span class="field-unit">m²</span>
+            </div>
+            <div class="treat-feedback"></div>
+          </div>
+        </div>
+
+        <div class="mat-row" style="grid-template-columns:72px 1fr 110px;margin-bottom:12px">
+          <span class="mat-lbl">Pared 1</span>
+          <select class="mat-select" id="treat-mat-pared1"></select>
+          <div>
+            <div class="field-wrap">
+              <input class="field-input" type="number" id="treat-m2-pared1" value="0" min="0" step="0.1" style="padding-right:28px">
+              <span class="field-unit">m²</span>
+            </div>
+            <div class="treat-feedback"></div>
+          </div>
+        </div>
+
+        <div class="mat-row" style="grid-template-columns:72px 1fr 110px;margin-bottom:12px">
+          <span class="mat-lbl">Pared 2</span>
+          <select class="mat-select" id="treat-mat-pared2"></select>
+          <div>
+            <div class="field-wrap">
+              <input class="field-input" type="number" id="treat-m2-pared2" value="0" min="0" step="0.1" style="padding-right:28px">
+              <span class="field-unit">m²</span>
+            </div>
+            <div class="treat-feedback"></div>
+          </div>
+        </div>
+
+        <div class="mat-row" style="grid-template-columns:72px 1fr 110px;margin-bottom:12px">
+          <span class="mat-lbl">Pared 3</span>
+          <select class="mat-select" id="treat-mat-pared3"></select>
+          <div>
+            <div class="field-wrap">
+              <input class="field-input" type="number" id="treat-m2-pared3" value="0" min="0" step="0.1" style="padding-right:28px">
+              <span class="field-unit">m²</span>
+            </div>
+            <div class="treat-feedback"></div>
+          </div>
+        </div>
+
+        <div class="mat-row" style="grid-template-columns:72px 1fr 110px;margin-bottom:0">
+          <span class="mat-lbl">Pared 4</span>
+          <select class="mat-select" id="treat-mat-pared4"></select>
+          <div>
+            <div class="field-wrap">
+              <input class="field-input" type="number" id="treat-m2-pared4" value="0" min="0" step="0.1" style="padding-right:28px">
+              <span class="field-unit">m²</span>
+            </div>
+            <div class="treat-feedback"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:14px">
+        α_resultante = (α_base × área_libre + α_tratamiento × m²_tratamiento) / área_total
+      </div>
+
+      <button class="btn-primary" onclick="runAndRedirect()">
+        Calcular simulación
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M5 7l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script src="js/three.min.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/aqengine.js"></script>
+<script src="js/app.js"></script>
+<script src="js/wizard.js"></script>
+<script src="js/simulator-renderer.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Tabla custom de absorción (36 inputs)
+  const surfaces = ['Piso','Techo','Pared 1','Pared 2','Pared 3','Pared 4'];
+  const ids      = ['piso','techo','pared1','pared2','pared3','pared4'];
+  const defaults = [
+    [0.01,0.01,0.02,0.02,0.02,0.02],
+    [0.02,0.02,0.03,0.04,0.04,0.03],
+    [0.02,0.02,0.03,0.04,0.04,0.03],
+    [0.02,0.02,0.03,0.04,0.04,0.03],
+    [0.03,0.03,0.04,0.05,0.07,0.09],
+    [0.03,0.03,0.04,0.05,0.07,0.09],
+  ];
+  const tbody = document.getElementById('abs-tbody');
+  if (tbody) {
+    tbody.innerHTML = surfaces.map((name, si) =>
+      `<tr><td>${name}</td>${defaults[si].map((v, bi) =>
+        `<td><input class="abs-input" type="number" id="abs-${ids[si]}-${bi}" value="${v}" min="0" max="1" step="0.01"></td>`
+      ).join('')}</tr>`
+    ).join('');
+  }
+});
+</script>
+</body>
+</html>

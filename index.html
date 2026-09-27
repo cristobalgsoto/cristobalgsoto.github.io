@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AQVIS — Acoustic Visual Simulation Engine</title>
+  <link rel="preload" as="font" type="font/otf"
+      href="fonts/Modeone.otf">
+  <link rel="stylesheet" href="css/global.css">
+  <style>
+    .hero {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      text-align: center;
+      background: var(--bg);
+    }
+
+    .hero-eyebrow {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--text2);
+      letter-spacing: 0.02em;
+      margin-bottom: 10px;
+    }
+
+    .hero-title {
+      font-family: var(--font-title);
+      font-size: clamp(96px, 16vw, 180px);
+      letter-spacing: 0.04em;
+      color: var(--text);
+      line-height: 0.9;
+      margin-bottom: 40px;
+    }
+
+    .hero-cta {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-pill);
+      padding: 16px 42px;
+      font-size: 16px;
+      font-family: var(--font-body);
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      letter-spacing: 0.02em;
+    }
+
+    .hero-cta:hover {
+      background: var(--surface3);
+      border-color: #444;
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-eyebrow">Acoustic Visual Simulation Engine</div>
+  <div class="hero-title">AQVIS</div>
+  <button class="hero-cta" onclick="window.location.href='simulator.html'">
+    Crea tu simulación
+  </button>
+</section>
+
+</body>
+</html>
