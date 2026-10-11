@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
+  initAqvisTooltips();
 
   const startBtn = document.getElementById('start-sim-btn');
   if (startBtn) {
@@ -22,6 +23,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
+function initAqvisTooltips() {
+  const tooltip = document.createElement('div');
+  tooltip.className = 'aq-tooltip';
+  tooltip.setAttribute('role', 'tooltip');
+  document.body.appendChild(tooltip);
+  let activeTarget = null;
+
+  const moveTooltip = (event) => {
+    const offset = 14;
+    const width = tooltip.offsetWidth;
+    const height = tooltip.offsetHeight;
+    const left = Math.min(event.clientX + offset, window.innerWidth - width - 12);
+    const top = event.clientY + offset + height > window.innerHeight
+      ? event.clientY - height - offset
+      : event.clientY + offset;
+    tooltip.style.left = `${Math.max(12, left)}px`;
+    tooltip.style.top = `${Math.max(12, top)}px`;
+  };
+
+  document.addEventListener('pointerover', (event) => {
+    const target = event.target.closest?.('[data-tooltip]');
+    if (!target) return;
+    activeTarget = target;
+    tooltip.textContent = target.dataset.tooltip;
+    tooltip.classList.add('visible');
+    moveTooltip(event);
+  });
+
+  document.addEventListener('pointermove', (event) => {
+    if (activeTarget) moveTooltip(event);
+  });
+
+  document.addEventListener('pointerout', (event) => {
+    if (!activeTarget || event.relatedTarget?.closest?.('[data-tooltip]') === activeTarget) return;
+    activeTarget = null;
+    tooltip.classList.remove('visible');
+  });
+}
 
 function goHome() {
   window.location.href = 'index.html';

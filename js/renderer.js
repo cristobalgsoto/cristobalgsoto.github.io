@@ -6,10 +6,7 @@
 'use strict';
 
 function renderResults(res, inp) {
-  const badge  = document.getElementById('iso-badge');
-  const dimLbl = document.getElementById('iso-dim-lbl');
-  if (badge)  badge.textContent  = `${inp.L} × ${inp.W} × ${inp.H} m · V=${res.V.toFixed(1)} m³`;
-  if (dimLbl) dimLbl.textContent = `${inp.L} × ${inp.W} × ${inp.H} m`;
+  currentResultData = res;
 
   renderThreeJS(res, inp);
   renderDecay(res);
@@ -25,6 +22,50 @@ function renderResults(res, inp) {
 // Instancias globales para poder actualizar el cubo sin recrear la escena
 let _threeState = null;
 let _availableModes = [];
+
+function moveThreeCamera(direction) {
+  const state = _threeState;
+  if (!state?.controls) return;
+  const offset = state.camera.position.clone().sub(state.controls.target);
+  const spherical = new THREE.Spherical().setFromVector3(offset);
+  const step = 0.16;
+  if (direction === 'left') spherical.theta -= step;
+  if (direction === 'right') spherical.theta += step;
+  if (direction === 'up') spherical.phi -= step;
+  if (direction === 'down') spherical.phi += step;
+  spherical.phi = Math.max(0.12, Math.min(Math.PI / 2 - 0.06, spherical.phi));
+  state.animateCameraTo(state.controls.target.clone().add(new THREE.Vector3().setFromSpherical(spherical)));
+}
+
+function zoomThreeCamera(direction) {
+  const state = _threeState;
+  if (!state?.controls) return;
+  const offset = state.camera.position.clone().sub(state.controls.target);
+  const nextDistance = offset.length() * (direction === 'in' ? 0.84 : 1.19);
+  offset.setLength(Math.max(state.controls.minDistance, Math.min(20, nextDistance)));
+  state.animateCameraTo(state.controls.target.clone().add(offset));
+}
+
+function toggleDecayPlayback() {
+  if (_threeState?.toggleDecayPlayback) _threeState.toggleDecayPlayback();
+}
+
+let cameraHoldTimeout = null;
+let cameraHoldInterval = null;
+
+function startCameraHold(direction) {
+  stopCameraHold();
+  cameraHoldTimeout = setTimeout(() => {
+    cameraHoldInterval = setInterval(() => moveThreeCamera(direction), 120);
+  }, 220);
+}
+
+function stopCameraHold() {
+  clearTimeout(cameraHoldTimeout);
+  clearInterval(cameraHoldInterval);
+  cameraHoldTimeout = null;
+  cameraHoldInterval = null;
+}
 
 function renderThreeJS(res, inp) {
   const container = document.getElementById('three-container');
@@ -93,6 +134,7 @@ function renderThreeJS(res, inp) {
   let modeCloud = null;
   let modeCloudBase = null;
   let selectedMode = null;
+  let modeViewActive = false;
   let transitionFrom = null;
   let transitionTo = null;
   let transitionStart = 0;
@@ -102,6 +144,7 @@ function renderThreeJS(res, inp) {
   let decayMethodState = null;
   let decayAnimationStart = performance.now();
   let decayTabActive = false;
+  let decayPlaying = true;
 
   function _modeAxisOffset(index, size) {
     if (!index) return 0;
@@ -115,7 +158,7 @@ function renderThreeJS(res, inp) {
     return t * t * (3 - 2 * t);
   }
 
-  function _buildDecayRays(bw, bh, bd) {
+  function _buildDecayRays(bw, bh, bd, seedOffset = 0) {
     if (decayRays) scene.remove(decayRays);
 
     const bounds = { x: bw / 2, y: bh / 2, z: bd / 2 };
@@ -124,7 +167,7 @@ function renderThreeJS(res, inp) {
     const trailSegments = 18;
     const directions = [];
     decayRayPaths = [];
-    let seed = 7919;
+    let seed = 7919 + seedOffset;
     const random = () => {
       seed = (seed * 1664525 + 1013904223) >>> 0;
       return seed / 4294967296;
@@ -141,8 +184,13 @@ function renderThreeJS(res, inp) {
     }
 
     for (const direction of directions) {
-      const points = [new THREE.Vector3(0, 0, 0)];
-      const current = new THREE.Vector3(0, 0, 0);
+      const origin = new THREE.Vector3(
+        (random() - 0.5) * bw * 0.18,
+        (random() - 0.5) * bh * 0.18,
+        (random() - 0.5) * bd * 0.18,
+      );
+      const points = [origin.clone()];
+      const current = origin.clone();
       const velocity = direction.clone();
       for (let pointIndex = 1; pointIndex < pathPointCount; pointIndex++) {
         const tx = velocity.x > 0 ? (bounds.x - current.x) / velocity.x : (-bounds.x - current.x) / velocity.x;
@@ -216,12 +264,19 @@ function renderThreeJS(res, inp) {
     const rt60 = average.length ? average.reduce((sum, value) => sum + value, 0) / average.length : 1;
     const fmp = Math.max(0.05, Number(result.fmp) || 1);
     decayMethodState = { rt60, fmp, color: definition.color || '#ff8a00' };
+    const methodSeed = Array.from(method || 'sabine').reduce(
+      (sum, character) => sum + character.charCodeAt(0), 0,
+    ) * 97;
+    const dimensions = decayRays.userData;
+    const wasVisible = decayRays.visible;
+    _buildDecayRays(dimensions.bw, dimensions.bh, dimensions.bd, methodSeed);
+    decayRays.visible = wasVisible || decayTabActive;
     decayRays.material.uniforms.color.value.set(decayMethodState.color);
     decayAnimationStart = performance.now();
   }
 
   function _animateDecayRays(time) {
-    if (!decayRays || !decayRays.visible || !decayMethodState) return false;
+    if (!decayRays || !decayRays.visible || !decayMethodState || !decayPlaying) return false;
     const { rt60, fmp } = decayMethodState;
     const scale = decayRays.userData.bw / Math.max(0.1, decayRays.userData.bw, decayRays.userData.bh, decayRays.userData.bd);
     const visualMeanPath = Math.max(0.12, fmp * scale);
@@ -433,6 +488,26 @@ function renderThreeJS(res, inp) {
   // en cada frame si no hace falta.
   let needsRender = true;
   function requestRender() { needsRender = true; }
+  let cameraTween = null;
+
+  function animateCameraTo(position) {
+    cameraTween = {
+      start: camera.position.clone(),
+      target: position,
+      startedAt: performance.now(),
+      duration: 360,
+    };
+    requestRender();
+  }
+
+  function updateDecayPlaybackButton() {
+    const button = document.getElementById('decay-play-toggle');
+    if (!button) return;
+    button.innerHTML = decayPlaying ? '&#10074;&#10074;' : '&#9654;';
+    button.setAttribute('aria-pressed', String(decayPlaying));
+    button.setAttribute('aria-label', decayPlaying ? 'Pausar animación de Decay' : 'Reproducir animación de Decay');
+    button.title = decayPlaying ? 'Pausar animación' : 'Reproducir animación';
+  }
 
   _buildMesh(inp.L, inp.W, inp.H);
   _updateDecayMethod(typeof decayMethod !== 'undefined' ? decayMethod : 'sabine', res);
@@ -462,6 +537,7 @@ function renderThreeJS(res, inp) {
 
   function onUserStart() {
     userInteracting = true;
+    cameraTween = null;
     clearTimeout(interactTimer);
   }
   function onUserEnd() {
@@ -480,6 +556,13 @@ function renderThreeJS(res, inp) {
   // ── Loop de animación ───────────────────────────
   function animate() {
     requestAnimationFrame(animate);
+    if (cameraTween) {
+      const progress = Math.min(1, (performance.now() - cameraTween.startedAt) / cameraTween.duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      camera.position.lerpVectors(cameraTween.start, cameraTween.target, eased);
+      if (progress >= 1) cameraTween = null;
+      needsRender = true;
+    }
     if (controls) controls.update();
     const now = performance.now();
     if (_animateModeCloud(now) || _animateDecayRays(now)) needsRender = true;
@@ -511,13 +594,14 @@ function renderThreeJS(res, inp) {
     controls,
     _buildMesh,
     requestRender,
+    animateCameraTo,
     setMode(mode) {
       const nextMode = mode || null;
       transitionStart = 0;
       selectedMode = nextMode;
       if (modeCloud) {
         modeCloud.position.set(0, roomMesh.position.y, 0);
-        modeCloud.visible = Boolean(selectedMode);
+        modeCloud.visible = Boolean(selectedMode && modeViewActive);
       }
       if (decayRays && selectedMode) decayRays.visible = false;
       requestRender();
@@ -535,9 +619,22 @@ function renderThreeJS(res, inp) {
       decayTabActive = Boolean(active);
       if (decayRays) decayRays.visible = decayTabActive;
       if (decayTabActive && result) _updateDecayMethod(method, result);
+      updateDecayPlaybackButton();
+      requestRender();
+    },
+    setModeViewActive(active) {
+      modeViewActive = Boolean(active);
+      if (modeCloud) modeCloud.visible = Boolean(modeViewActive && selectedMode);
+      requestRender();
+    },
+    toggleDecayPlayback() {
+      decayPlaying = !decayPlaying;
+      if (decayPlaying) decayAnimationStart = performance.now();
+      updateDecayPlaybackButton();
       requestRender();
     },
   };
+  updateDecayPlaybackButton();
 }
 
 function selectRoomMode(modeIndex) {
@@ -578,13 +675,6 @@ function updateThreeCubeDimensions() {
   const L = parseFloat(document.getElementById('res-largo')?.value) || 6.0;
   const W = parseFloat(document.getElementById('res-ancho')?.value) || 4.5;
   const H = parseFloat(document.getElementById('res-alto')?.value)  || 2.8;
-
-  const badge  = document.getElementById('iso-badge');
-  const dimLbl = document.getElementById('iso-dim-lbl');
-
-  const V = (L * W * H).toFixed(1);
-  if (badge)  badge.textContent  = `${L} × ${W} × ${H} m · V=${V} m³`;
-  if (dimLbl) dimLbl.textContent = `${L} × ${W} × ${H} m`;
 
   if (_threeState) {
     _updateRoomMesh(_threeState, L, W, H);
@@ -650,7 +740,7 @@ function renderModesDensity(res) {
   const maxCount = Math.max(1, ...bins.map(b => b.axial + b.tangencial + b.oblicuo));
 
   const W = container.clientWidth || 600;
-  const H = 200;
+  const H = window.matchMedia('(max-width: 720px)').matches ? 140 : 180;
   const PAD = { top: 10, right: 4, bottom: 24, left: 4 };
   const innerW = W - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
@@ -658,9 +748,9 @@ function renderModesDensity(res) {
   const barW = Math.max(2, innerW / nBins - gap);
 
   const STACK = [
-    ['oblicuo',    '#f0b432'],
-    ['tangencial', '#7c7c7c'],
-    ['axial',      '#e4e4e4'],
+    ['oblicuo',    '#e83e8c'],
+    ['tangencial', '#f59e0b'],
+    ['axial',      '#2563eb'],
   ];
 
   const bars = bins.map((b, i) => {
@@ -671,9 +761,7 @@ function renderModesDensity(res) {
       if (h <= 0) return '';
       yCursor -= h;
       const f0 = i * binWidth, f1 = f0 + binWidth;
-      return `<rect x="${x.toFixed(1)}" y="${yCursor.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}">
-        <title>${f0}-${f1} Hz: ${b[type]} ${type}</title>
-      </rect>`;
+      return `<rect x="${x.toFixed(1)}" y="${yCursor.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}" data-tooltip="${f0}-${f1} Hz: ${b[type]} ${type}"></rect>`;
     }).join('');
   }).join('');
 
@@ -681,9 +769,7 @@ function renderModesDensity(res) {
   const schroederEl = res.schroeder < maxFreq
     ? `<line x1="${schroederX.toFixed(1)}" y1="${PAD.top}" x2="${schroederX.toFixed(1)}" y2="${(PAD.top + innerH).toFixed(1)}"
          stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5,3"/>
-       <rect x="${schroederX.toFixed(1)}" y="${PAD.top}" width="${(PAD.left + innerW - schroederX).toFixed(1)}" height="${innerH.toFixed(1)}"
-         fill="var(--accent)" opacity="0.05"/>
-       <text x="${schroederX.toFixed(1)}" y="${(PAD.top - 2).toFixed(1)}" text-anchor="middle" font-size="9"
+       <text x="${schroederX.toFixed(1)}" y="${(PAD.top - 2).toFixed(1)}" text-anchor="middle" font-size="10"
          fill="var(--accent)" font-family="var(--font-mono)">Schroeder</text>`
     : '';
 
@@ -691,7 +777,7 @@ function renderModesDensity(res) {
   const xLabels = Array.from({ length: nLabels }, (_, i) => {
     const f = Math.round((maxFreq * i / (nLabels - 1)) / 10) * 10;
     const x = PAD.left + Math.min(f / maxFreq, 1) * innerW;
-    return `<text x="${x.toFixed(1)}" y="${(H - 8).toFixed(1)}" text-anchor="middle" font-size="9"
+    return `<text x="${x.toFixed(1)}" y="${(H - 8).toFixed(1)}" text-anchor="middle" font-size="10"
       fill="var(--text3)" font-family="var(--font-mono)">${f}</text>`;
   }).join('');
 
@@ -722,6 +808,13 @@ function renderModesColumns(res) {
   ];
   const MAX_PER_COL = 24;
 
+  const tabs = document.getElementById('modes-type-tabs');
+  if (tabs) {
+    tabs.innerHTML = TYPES.map((type, index) =>
+      `<button type="button" class="modes-type-btn${index === 0 ? ' active' : ''}" role="tab" aria-selected="${index === 0}" onclick="setModesType('${type.key}',this)">${type.label}</button>`
+    ).join('');
+  }
+
   wrap.innerHTML = TYPES.map(t => {
     const list  = modes.filter(m => m.type === t.key);
     const shown = list.slice(0, MAX_PER_COL);
@@ -735,7 +828,7 @@ function renderModesColumns(res) {
       ? `${list.length} en zona modal (primeros ${MAX_PER_COL})`
       : `${list.length} en zona modal`;
 
-    return `<div class="${t.cls}">
+    return `<div class="${t.cls}${t.key === TYPES[0].key ? ' active' : ''}" data-mode-type="${t.key}">
       <div class="modes-col-head">
         <span class="modes-col-dot"></span>
         <span class="modes-col-title">${t.label}</span>
@@ -744,6 +837,32 @@ function renderModesColumns(res) {
       <div class="modes-list">${rows}</div>
     </div>`;
   }).join('');
+
+  const freqs = modes.map(mode => mode.f);
+  const hasClose = freqs.some((frequency, index) => freqs.some((other, otherIndex) => index !== otherIndex && Math.abs(frequency - other) < 3));
+  if (hasClose) wrap.innerHTML += '<div class="note" style="grid-column:1/-1;margin-top:6px">Modos muy próximos: puede existir acumulación de energía.</div>';
+}
+
+function setModesType(type, button) {
+  document.querySelectorAll('.modes-type-btn').forEach(tab => {
+    const active = tab === button;
+    tab.classList.toggle('active', active);
+    tab.setAttribute('aria-selected', String(active));
+  });
+  document.querySelectorAll('#modes-cols [data-mode-type]').forEach(column => {
+    column.classList.toggle('active', column.dataset.modeType === type);
+  });
+}
+
+function setModesView(view, button) {
+  document.querySelectorAll('.modes-view-btn').forEach(tab => {
+    const active = tab === button;
+    tab.classList.toggle('active', active);
+    tab.setAttribute('aria-selected', String(active));
+  });
+  document.querySelectorAll('.modes-view-pane').forEach(pane => {
+    pane.classList.toggle('active', pane.id === `modes-view-${view}`);
+  });
 }
 
 // ── Región de Bolt ────────────────────────────────
@@ -841,18 +960,16 @@ function renderBoltChart(res) {
 
   const gridLines = [
     ...xTicks.map(t => `<line x1="${xPos(t).toFixed(1)}" y1="${PAD.top}" x2="${xPos(t).toFixed(1)}" y2="${(PAD.top + innerH).toFixed(1)}" stroke="var(--border2)" stroke-width="0.5" stroke-dasharray="2,4"/>
-      <text x="${xPos(t).toFixed(1)}" y="${(PAD.top + innerH + 14).toFixed(1)}" text-anchor="middle" font-size="9" fill="var(--text3)" font-family="var(--font-mono)">${t.toFixed(1)}</text>`),
+      <text x="${xPos(t).toFixed(1)}" y="${(PAD.top + innerH + 14).toFixed(1)}" text-anchor="middle" font-size="10" fill="var(--text3)" font-family="var(--font-mono)">${t.toFixed(1)}</text>`),
     ...yTicks.map(t => `<line x1="${PAD.left}" y1="${yPos(t).toFixed(1)}" x2="${(PAD.left + innerW).toFixed(1)}" y2="${yPos(t).toFixed(1)}" stroke="var(--border2)" stroke-width="0.5" stroke-dasharray="2,4"/>
-      <text x="${(PAD.left - 5).toFixed(1)}" y="${(yPos(t) + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--text3)" font-family="var(--font-mono)">${t.toFixed(1)}</text>`),
+      <text x="${(PAD.left - 5).toFixed(1)}" y="${(yPos(t) + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text3)" font-family="var(--font-mono)">${t.toFixed(1)}</text>`),
   ].join('');
 
   const polyPoints = BOLT_POLYGON.map(([x, y]) => `${xPos(x).toFixed(1)},${yPos(y).toFixed(1)}`).join(' ');
   const boltShape = `<polygon points="${polyPoints}" fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>`;
 
   const refDots = BOLT_REFERENCE_RATIOS.map(r => `
-    <circle cx="${xPos(r.x).toFixed(1)}" cy="${yPos(r.y).toFixed(1)}" r="3.5" fill="var(--surface)" stroke="var(--text3)" stroke-width="1.3">
-      <title>${r.name}: ${r.x.toFixed(2)}, ${r.y.toFixed(2)}</title>
-    </circle>`).join('');
+    <circle cx="${xPos(r.x).toFixed(1)}" cy="${yPos(r.y).toFixed(1)}" r="3.5" fill="var(--surface)" stroke="var(--text3)" stroke-width="1.3" data-tooltip="${r.name}: ${r.x.toFixed(2)}, ${r.y.toFixed(2)}"></circle>`).join('');
 
   const roomColor = res.inBolt ? '#64dc82' : '#f05050';
   const rx = xPos(res.boltX), ry = yPos(res.boltY);
@@ -861,8 +978,8 @@ function renderBoltChart(res) {
     <circle cx="${rx.toFixed(1)}" cy="${ry.toFixed(1)}" r="6" fill="${roomColor}"/>
     <text x="${(rx + 12).toFixed(1)}" y="${(ry - 8).toFixed(1)}" font-size="10" fill="var(--text2)" font-family="var(--font-body)">Tu sala</text>`;
 
-  const xAxisLabel = `<text x="${(PAD.left + innerW / 2).toFixed(1)}" y="${(H - 4).toFixed(1)}" text-anchor="middle" font-size="9" fill="var(--text3)" font-family="var(--font-mono)">media / menor</text>`;
-  const yAxisLabel = `<text transform="rotate(-90)" x="${-(PAD.top + innerH / 2)}" y="11" text-anchor="middle" font-size="9" fill="var(--text3)" font-family="var(--font-mono)">mayor / menor</text>`;
+  const xAxisLabel = `<text x="${(PAD.left + innerW / 2).toFixed(1)}" y="${(H - 4).toFixed(1)}" text-anchor="middle" font-size="10" fill="var(--text3)" font-family="var(--font-mono)">media / menor</text>`;
+  const yAxisLabel = `<text transform="rotate(-90)" x="${-(PAD.top + innerH / 2)}" y="11" text-anchor="middle" font-size="10" fill="var(--text3)" font-family="var(--font-mono)">mayor / menor</text>`;
 
   container.innerHTML = `
     <svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">

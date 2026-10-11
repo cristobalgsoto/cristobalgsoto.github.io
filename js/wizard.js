@@ -25,14 +25,12 @@ function updateTimeline() {
   const nav = document.getElementById('timeline');
   if (!nav) return;
 
-  const seq = getStepSequence();
-  nav.innerHTML = seq.map((step) => {
-    const idx = seq.indexOf(step);
-    const curIdx = seq.indexOf(wizardState.currentStep);
-    let cls = '';
-    if (step === wizardState.currentStep) cls = 'active';
-    else if (idx < curIdx) cls = 'done';
-    return `<div class="tl-pill ${cls}">${STEP_LABELS[step]}</div>`;
+  const sequence = getStepSequence();
+  nav.style.setProperty('--timeline-steps', sequence.length);
+  nav.innerHTML = sequence.map((step, index) => {
+    const currentIndex = sequence.indexOf(wizardState.currentStep);
+    const status = step === wizardState.currentStep ? 'active' : index < currentIndex ? 'done' : 'upcoming';
+    return `<div class="tl-node ${status}" role="listitem"${status === 'active' ? ' aria-current="step"' : ''}><span class="tl-dot" aria-hidden="true"></span><span class="tl-label">${STEP_LABELS[step]}</span></div>`;
   }).join('');
 }
 
@@ -46,6 +44,41 @@ function goToStep(nextStep) {
   wizardState.currentStep = nextStep;
   updateTimeline();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goBackStep() {
+  const sequence = getStepSequence();
+  const previousStep = sequence[sequence.indexOf(wizardState.currentStep) - 1];
+  if (previousStep) goToStep(previousStep);
+}
+
+function validateSpaceDimensions() {
+  const inputs = ['w-largo', 'w-ancho', 'w-alto']
+    .map((id) => document.getElementById(id))
+    .filter(Boolean);
+  const firstInvalid = inputs.find((input) => !input.checkValidity());
+  if (!firstInvalid) return true;
+  firstInvalid.reportValidity();
+  return false;
+}
+
+function restorePreviousDimensions() {
+  let previousInput = null;
+  try {
+    previousInput = JSON.parse(sessionStorage.getItem('aqvis_input') || 'null');
+  } catch (error) {
+    previousInput = null;
+  }
+
+  if (!previousInput) return;
+  [
+    ['w-largo', previousInput.L],
+    ['w-ancho', previousInput.W],
+    ['w-alto', previousInput.H],
+  ].forEach(([id, value]) => {
+    const input = document.getElementById(id);
+    if (input && Number.isFinite(Number(value))) input.value = value;
+  });
 }
 
 function setMaterialMode(mode) {
@@ -124,7 +157,20 @@ function buildTreatmentDropdowns() {
     if (!sel) return;
     const names = getTreatmentForSurface(surfId);
     sel.innerHTML = '<option value="">Sin tratamiento</option>' + names.map((name) => `<option value="${name}">${name}</option>`).join('');
+    updateTreatmentAlpha(sel, 'treat-alpha-' + surfId);
   });
+}
+
+function updateTreatmentAlpha(select, alphaId) {
+  const output = document.getElementById(alphaId);
+  if (!output) return;
+  const treatment = TREATMENT_MATERIALS[select?.value];
+  if (!treatment?.alpha?.length) {
+    output.textContent = 'ᾱ —';
+    return;
+  }
+  const average = treatment.alpha.reduce((sum, value) => sum + value, 0) / treatment.alpha.length;
+  output.textContent = 'ᾱ ' + average.toFixed(2);
 }
 
 function initTreatmentValidation() {
@@ -254,10 +300,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const timeline = document.getElementById('timeline');
   if (timeline) updateTimeline();
 
+  restorePreviousDimensions();
   buildMaterialDropdowns();
 
   const stepOneNext = document.getElementById('next-step-1');
-  if (stepOneNext) stepOneNext.addEventListener('click', () => goToStep(2));
+  if (stepOneNext) stepOneNext.addEventListener('click', () => {
+    if (validateSpaceDimensions()) goToStep(2);
+  });
 
   const stepTwoNext = document.getElementById('next-step-2');
   if (stepTwoNext) stepTwoNext.addEventListener('click', () => goToStep(3));
@@ -274,24 +323,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   buildTreatmentDropdowns();
   initTreatmentValidation();
-
-  const surfaceInputs = ['w-largo', 'w-ancho', 'w-alto'];
-  surfaceInputs.forEach((id) => {
-    const input = document.getElementById(id);
-    if (input) {
-      input.addEventListener('input', () => {
-        const value = safeNumber(input.value, 0);
-        if (value <= 0) return;
-        const L = safeNumber(document.getElementById('w-largo')?.value, 6.0);
-        const W = safeNumber(document.getElementById('w-ancho')?.value, 4.5);
-        const H = safeNumber(document.getElementById('w-alto')?.value, 2.8);
-        const badge = document.getElementById('sim-iso-badge');
-        const dimLbl = document.getElementById('sim-iso-dim-lbl');
-        if (badge) badge.textContent = `${L.toFixed(1)} × ${W.toFixed(1)} × ${H.toFixed(1)} m`;
-        if (dimLbl) dimLbl.textContent = `${L.toFixed(1)} × ${W.toFixed(1)} × ${H.toFixed(1)} m`;
-      });
-    }
-  });
 
   document.querySelectorAll('input[type="range"]').forEach((slider) => {
     const valId = slider.dataset.valId;

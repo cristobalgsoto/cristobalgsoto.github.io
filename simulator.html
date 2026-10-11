@@ -50,7 +50,7 @@
 <div class="sim-page">
   <div class="sim-inner">
 
-    <div id="timeline" class="timeline" style="margin-bottom:32px"></div>
+    <div id="timeline" class="timeline" role="list" aria-label="Progreso de simulación" style="margin-bottom:32px"></div>
 
     <!-- ══ PASO 1: ESPACIO ══ -->
     <div class="wizard-card active" id="step-1">
@@ -62,21 +62,21 @@
         <div class="field-row-3">
           <div>
             <div class="field-wrap">
-              <input class="field-input" type="number" id="w-largo" value="6.0" step="0.1" min="0.5" max="20">
+              <input class="field-input" type="number" id="w-largo" step="0.1" min="0.5" max="20" required>
               <span class="field-unit">m</span>
             </div>
             <span class="field-sub">Largo</span>
           </div>
           <div>
             <div class="field-wrap">
-              <input class="field-input" type="number" id="w-ancho" value="4.5" step="0.1" min="0.5" max="20">
+              <input class="field-input" type="number" id="w-ancho" step="0.1" min="0.5" max="20" required>
               <span class="field-unit">m</span>
             </div>
             <span class="field-sub">Ancho</span>
           </div>
           <div>
             <div class="field-wrap">
-              <input class="field-input" type="number" id="w-alto" value="2.8" step="0.1" min="0.5" max="20">
+              <input class="field-input" type="number" id="w-alto" step="0.1" min="0.5" max="20" required>
               <span class="field-unit">m</span>
             </div>
             <span class="field-sub">Altura</span>
@@ -85,18 +85,13 @@
       </div>
 
       <div class="iso-panel" style="margin-top:20px">
-        <div class="iso-header">
-          <div class="panel-title" style="margin-bottom:0;font-size:9px">Vista isométrica</div>
-          <div class="iso-badge" id="sim-iso-badge">6.0 × 4.5 × 2.8 m</div>
-        </div>
         <div class="iso-viewport" style="flex:1;min-height:220px">
           <div class="iso-grid-bg"></div>
           <div id="three-container" style="position:absolute;inset:0;z-index:1"></div>
-          <div class="iso-dim-lbl" id="sim-iso-dim-lbl">6.0 × 4.5 × 2.8 m</div>
         </div>
       </div>
 
-      <button class="btn-primary" onclick="goToStep(2)">
+      <button class="btn-primary" id="next-step-1">
         Continuar
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
           <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -123,12 +118,13 @@
         </div>
       </div>
 
-      <button class="btn-primary" onclick="goToStep(3)">
-        Continuar
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
+      <div class="wizard-actions">
+        <button class="btn-back" type="button" onclick="goBackStep()"><svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M11 7H3m4-4-4 4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Volver</button>
+        <button class="btn-primary" onclick="goToStep(3)">
+          Continuar
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- ══ PASO 3: MATERIALES ══ -->
@@ -179,12 +175,13 @@
         <div class="note">Los coeficientes por banda de octava se ingresarán en el siguiente paso.</div>
       </div>
 
-      <button class="btn-primary" onclick="afterMaterials()">
-        Continuar
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
+      <div class="wizard-actions">
+        <button class="btn-back" type="button" onclick="goBackStep()"><svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M11 7H3m4-4-4 4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Volver</button>
+        <button class="btn-primary" onclick="afterMaterials()">
+          Continuar
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- ══ PASO 4: ABSORCIÓN CUSTOM ══ -->
@@ -209,12 +206,13 @@
         Fuente sugerida: FADU-UdelaR (2012) / Bies &amp; Hansen (2024)
       </div>
 
-      <button class="btn-primary" onclick="afterCustomAbsorption()">
-        Continuar
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
+      <div class="wizard-actions">
+        <button class="btn-back" type="button" onclick="goBackStep()"><svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M11 7H3m4-4-4 4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Volver</button>
+        <button class="btn-primary" onclick="afterCustomAbsorption()">
+          Continuar
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- ══ PASO 5: TRATAMIENTO YES/NO ══ -->
@@ -233,13 +231,13 @@
         </div>
       </div>
 
-      <button class="btn-primary" id="treat-continue-btn"
-        style="display:none" onclick="continueTreatment()">
-        Continuar
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
+      <div class="wizard-actions">
+        <button class="btn-back" type="button" onclick="goBackStep()"><svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M11 7H3m4-4-4 4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Volver</button>
+        <button class="btn-primary" id="treat-continue-btn" style="display:none" onclick="continueTreatment()">
+          Continuar
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- ══ PASO 6: TRATAMIENTO DETALLE ══ -->
@@ -249,9 +247,10 @@
 
       <!-- ✅ Dropdowns generados por buildTreatmentDropdowns() + validación m² -->
       <div id="treat-rows">
-        <div class="mat-row" style="grid-template-columns:72px 1fr 110px;margin-bottom:12px">
+        <div class="mat-row treatment-row" style="grid-template-columns:72px 1fr 52px 110px;margin-bottom:12px">
           <span class="mat-lbl">Piso</span>
-          <select class="mat-select" id="treat-mat-piso"></select>
+          <select class="mat-select" id="treat-mat-piso" onchange="updateTreatmentAlpha(this,'treat-alpha-piso')"></select>
+          <span class="mat-alpha" id="treat-alpha-piso">ᾱ —</span>
           <div>
             <div class="field-wrap">
               <input class="field-input" type="number" id="treat-m2-piso" value="0" min="0" step="0.1" style="padding-right:28px">
@@ -261,9 +260,10 @@
           </div>
         </div>
 
-        <div class="mat-row" style="grid-template-columns:72px 1fr 110px;margin-bottom:12px">
+        <div class="mat-row treatment-row" style="grid-template-columns:72px 1fr 52px 110px;margin-bottom:12px">
           <span class="mat-lbl">Techo</span>
-          <select class="mat-select" id="treat-mat-techo"></select>
+          <select class="mat-select" id="treat-mat-techo" onchange="updateTreatmentAlpha(this,'treat-alpha-techo')"></select>
+          <span class="mat-alpha" id="treat-alpha-techo">ᾱ —</span>
           <div>
             <div class="field-wrap">
               <input class="field-input" type="number" id="treat-m2-techo" value="0" min="0" step="0.1" style="padding-right:28px">
@@ -273,9 +273,10 @@
           </div>
         </div>
 
-        <div class="mat-row" style="grid-template-columns:72px 1fr 110px;margin-bottom:12px">
+        <div class="mat-row treatment-row" style="grid-template-columns:72px 1fr 52px 110px;margin-bottom:12px">
           <span class="mat-lbl">Pared 1</span>
-          <select class="mat-select" id="treat-mat-pared1"></select>
+          <select class="mat-select" id="treat-mat-pared1" onchange="updateTreatmentAlpha(this,'treat-alpha-pared1')"></select>
+          <span class="mat-alpha" id="treat-alpha-pared1">ᾱ —</span>
           <div>
             <div class="field-wrap">
               <input class="field-input" type="number" id="treat-m2-pared1" value="0" min="0" step="0.1" style="padding-right:28px">
@@ -285,9 +286,10 @@
           </div>
         </div>
 
-        <div class="mat-row" style="grid-template-columns:72px 1fr 110px;margin-bottom:12px">
+        <div class="mat-row treatment-row" style="grid-template-columns:72px 1fr 52px 110px;margin-bottom:12px">
           <span class="mat-lbl">Pared 2</span>
-          <select class="mat-select" id="treat-mat-pared2"></select>
+          <select class="mat-select" id="treat-mat-pared2" onchange="updateTreatmentAlpha(this,'treat-alpha-pared2')"></select>
+          <span class="mat-alpha" id="treat-alpha-pared2">ᾱ —</span>
           <div>
             <div class="field-wrap">
               <input class="field-input" type="number" id="treat-m2-pared2" value="0" min="0" step="0.1" style="padding-right:28px">
@@ -297,9 +299,10 @@
           </div>
         </div>
 
-        <div class="mat-row" style="grid-template-columns:72px 1fr 110px;margin-bottom:12px">
+        <div class="mat-row treatment-row" style="grid-template-columns:72px 1fr 52px 110px;margin-bottom:12px">
           <span class="mat-lbl">Pared 3</span>
-          <select class="mat-select" id="treat-mat-pared3"></select>
+          <select class="mat-select" id="treat-mat-pared3" onchange="updateTreatmentAlpha(this,'treat-alpha-pared3')"></select>
+          <span class="mat-alpha" id="treat-alpha-pared3">ᾱ —</span>
           <div>
             <div class="field-wrap">
               <input class="field-input" type="number" id="treat-m2-pared3" value="0" min="0" step="0.1" style="padding-right:28px">
@@ -309,9 +312,10 @@
           </div>
         </div>
 
-        <div class="mat-row" style="grid-template-columns:72px 1fr 110px;margin-bottom:0">
+        <div class="mat-row treatment-row" style="grid-template-columns:72px 1fr 52px 110px;margin-bottom:0">
           <span class="mat-lbl">Pared 4</span>
-          <select class="mat-select" id="treat-mat-pared4"></select>
+          <select class="mat-select" id="treat-mat-pared4" onchange="updateTreatmentAlpha(this,'treat-alpha-pared4')"></select>
+          <span class="mat-alpha" id="treat-alpha-pared4">ᾱ —</span>
           <div>
             <div class="field-wrap">
               <input class="field-input" type="number" id="treat-m2-pared4" value="0" min="0" step="0.1" style="padding-right:28px">
@@ -326,13 +330,13 @@
         α_resultante = (α_base × área_libre + α_tratamiento × m²_tratamiento) / área_total
       </div>
 
-      <button class="btn-primary" onclick="runAndRedirect()">
-        Calcular simulación
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M5 7l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
+      <div class="wizard-actions">
+        <button class="btn-back" type="button" onclick="goBackStep()"><svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M11 7H3m4-4-4 4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Volver</button>
+        <button class="btn-primary" onclick="runAndRedirect()">
+          Calcular simulación
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
     </div>
 
   </div>

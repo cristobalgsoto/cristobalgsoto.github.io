@@ -4,68 +4,346 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AQVIS — Acoustic Visual Simulation Engine</title>
-  <link rel="preload" as="font" type="font/otf"
-      href="fonts/Modeone.otf">
   <link rel="stylesheet" href="css/global.css">
   <style>
+    body { background: #070909; }
+
     .hero {
-      height: 100vh;
+      position: relative;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0;
-      text-align: center;
-      background: var(--bg);
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 76% 48%, rgba(0,194,203,0.1), transparent 30%),
+        linear-gradient(135deg, #070909 0%, #0b1112 58%, #11100d 100%);
     }
 
+    .hero::after {
+      position: absolute;
+      right: 7vw;
+      bottom: 28px;
+      width: 36vw;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(244,153,92,0.8));
+      content: '';
+      opacity: 0.7;
+    }
+
+    .hero-nav {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 28px 5vw;
+    }
+
+    .hero-brand {
+      color: #f1f5f2;
+      font-family: var(--font-title);
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(280px, 0.82fr) minmax(360px, 1.18fr);
+      align-items: center;
+      gap: 5vw;
+      width: min(1180px, 90vw);
+      flex: 1;
+      margin: 0 auto;
+      padding: 5vh 0 11vh;
+    }
+
+    .hero-copy { max-width: 470px; }
+
     .hero-eyebrow {
-      font-size: 13px;
-      font-weight: 400;
-      color: var(--text2);
-      letter-spacing: 0.02em;
-      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #00c2cb;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .hero-eyebrow::before {
+      width: 28px;
+      height: 1px;
+      background: #00c2cb;
+      content: '';
     }
 
     .hero-title {
+      max-width: 440px;
+      color: #edf4f1;
       font-family: var(--font-title);
-      font-size: clamp(96px, 16vw, 180px);
-      letter-spacing: 0.04em;
-      color: var(--text);
-      line-height: 0.9;
-      margin-bottom: 40px;
+      font-size: clamp(56px, 8vw, 112px);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 0.92;
+      margin-bottom: 28px;
+    }
+
+    .hero-description {
+      max-width: 350px;
+      color: #9aabaa;
+      font-size: 16px;
+      line-height: 1.55;
+      margin-bottom: 34px;
     }
 
     .hero-cta {
-      background: var(--surface2);
-      color: var(--text);
-      border: 1px solid var(--border2);
-      border-radius: var(--radius-pill);
-      padding: 16px 42px;
-      font-size: 16px;
-      font-family: var(--font-body);
-      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 18px;
+      background: #00c2cb;
+      color: #061012;
+      border: 1px solid #00c2cb;
+      border-radius: 4px;
+      padding: 14px 18px 14px 22px;
+      font-size: 13px;
+      font-weight: 700;
       cursor: pointer;
       transition: var(--transition);
-      letter-spacing: 0.02em;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
 
+    .hero-cta::after { content: '↗'; font-size: 18px; line-height: 0; }
+
     .hero-cta:hover {
-      background: var(--surface3);
-      border-color: #444;
+      background: #f4995c;
+      border-color: #f4995c;
       transform: translateY(-2px);
+    }
+
+    .hero-visual {
+      position: relative;
+      height: clamp(360px, 52vw, 560px);
+      flex-shrink: 0;
+      border: 1px solid rgba(145,175,173,0.2);
+      background: rgba(5,13,14,0.32);
+      overflow: hidden;
+    }
+
+    #acoustic-three { position: absolute; inset: 0; z-index: 0; }
+
+    .hero-visual::after {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background:
+        linear-gradient(rgba(151, 90, 255, 0.045) 50%, transparent 50%),
+        repeating-linear-gradient(90deg, transparent 0, transparent 3px, rgba(255,255,255,0.018) 4px, transparent 5px);
+      background-size: 100% 4px, 100% 100%;
+      content: '';
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    .hero-visual-noise {
+      position: absolute;
+      z-index: 1;
+      inset: 0;
+      background: radial-gradient(circle at 50% 50%, transparent 20%, rgba(93, 41, 164, 0.18) 100%);
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    @media (max-width: 700px) {
+      .hero-nav { padding: 22px 6vw; }
+      .hero-content {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 34px;
+        width: 88vw;
+        padding: 7vh 0 12vh;
+      }
+      .hero-copy { max-width: none; }
+      .hero-eyebrow { margin-bottom: 18px; }
+      .hero-title { font-size: clamp(58px, 17vw, 86px); }
+      .hero-description { font-size: 14px; margin-bottom: 24px; }
+      .hero-visual { height: 58vw; min-height: 230px; }
+      .hero::after { right: 6vw; width: 48vw; }
     }
   </style>
 </head>
 <body>
 
 <section class="hero">
-  <div class="hero-eyebrow">Acoustic Visual Simulation Engine</div>
-  <div class="hero-title">AQVIS</div>
-  <button class="hero-cta" onclick="window.location.href='simulator.html'">
-    Crea tu simulación
-  </button>
+  <nav class="hero-nav" aria-label="Navegación principal">
+    <div class="hero-brand">AQVIS</div>
+  </nav>
+
+  <div class="hero-content">
+    <div class="hero-copy">
+      <div class="hero-eyebrow">Visualiza la acústica</div>
+      <h1 class="hero-title">Diseña el sonido de un espacio.</h1>
+      <p class="hero-description">Explora la reverberación, los modos propios y la distribución acústica antes de construir.</p>
+      <button class="hero-cta" onclick="window.location.href='simulator.html'">Crea tu simulación</button>
+    </div>
+
+    <div class="hero-visual" aria-label="Visualización animada de partículas acústicas">
+      <div id="acoustic-three"></div>
+      <div class="hero-visual-noise"></div>
+    </div>
+  </div>
 </section>
+
+<script src="js/three.min.js"></script>
+<script>
+  const threeContainer = document.getElementById('acoustic-three');
+  const threeWidth = threeContainer.offsetWidth;
+  const threeHeight = threeContainer.offsetHeight;
+  const threeScene = new THREE.Scene();
+  const threeCamera = new THREE.PerspectiveCamera(42, threeWidth / threeHeight, 0.1, 100);
+  const threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+
+  threeCamera.position.set(3.7, 3.1, 5.1);
+  threeCamera.lookAt(0, 0.2, 0);
+  threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  threeRenderer.setSize(threeWidth, threeHeight);
+  threeRenderer.setClearColor(0x05090c, 0);
+  threeContainer.appendChild(threeRenderer.domElement);
+
+  threeScene.add(new THREE.AmbientLight(0x332244));
+  const ultravioletLight = new THREE.PointLight(0x7d36ff, 2.2, 12);
+  ultravioletLight.position.set(-2.5, 2.5, 3);
+  threeScene.add(ultravioletLight);
+  const cyanLight = new THREE.PointLight(0x00c2cb, 2.4, 10);
+  cyanLight.position.set(2.5, 0.5, 2);
+  threeScene.add(cyanLight);
+
+  const cubeGeometry = new THREE.BoxGeometry(2.15, 1.6, 2.55);
+  const cubeMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00c2cb,
+    transparent: true,
+    opacity: 0.2,
+    depthWrite: false,
+    side: THREE.FrontSide,
+  });
+  const acousticCube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+  acousticCube.position.y = 0.08;
+  threeScene.add(acousticCube);
+
+  const cubeEdges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(cubeGeometry),
+    new THREE.LineBasicMaterial({ color: 0x087f86, transparent: true, opacity: 0.95 }),
+  );
+  cubeEdges.position.copy(acousticCube.position);
+  threeScene.add(cubeEdges);
+
+  const particleCount = 90;
+  const particlePositions = new Float32Array(particleCount * 3);
+  const particleAlphas = new Float32Array(particleCount);
+  const particleVelocities = [];
+  const particleLives = [];
+  const particleAges = [];
+  const randomBetween = (min, max) => min + Math.random() * (max - min);
+
+  const particleMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      color: { value: new THREE.Color(0x9c78ff) },
+      pointSize: { value: 8 },
+    },
+    vertexShader: `
+      attribute float aAlpha;
+      varying float vAlpha;
+      uniform float pointSize;
+      void main() {
+        vAlpha = aAlpha;
+        vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = pointSize * (1.0 / max(0.8, -viewPosition.z));
+        gl_Position = projectionMatrix * viewPosition;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 color;
+      varying float vAlpha;
+      void main() {
+        float distanceFromCenter = distance(gl_PointCoord, vec2(0.5));
+        float glow = 1.0 - smoothstep(0.05, 0.5, distanceFromCenter);
+        gl_FragColor = vec4(color, glow * vAlpha);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const particleGeometry = new THREE.BufferGeometry();
+  particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+  particleGeometry.setAttribute('aAlpha', new THREE.BufferAttribute(particleAlphas, 1));
+  const particleField = new THREE.Points(particleGeometry, particleMaterial);
+  particleField.position.copy(acousticCube.position);
+  threeScene.add(particleField);
+
+  function resetParticle(index, initial = false) {
+    const offset = index * 3;
+    const direction = new THREE.Vector3(
+      randomBetween(-1, 1),
+      randomBetween(-0.75, 0.75),
+      randomBetween(-1, 1),
+    ).normalize();
+    const startRadius = randomBetween(0.02, 0.16);
+    particlePositions[offset] = direction.x * startRadius;
+    particlePositions[offset + 1] = direction.y * startRadius;
+    particlePositions[offset + 2] = direction.z * startRadius;
+    particleVelocities[index] = direction.multiplyScalar(randomBetween(0.0018, 0.0038));
+    particleLives[index] = randomBetween(2600, 5200);
+    particleAges[index] = initial ? randomBetween(0, particleLives[index]) : 0;
+    particleAlphas[index] = 0;
+  }
+
+  for (let index = 0; index < particleCount; index += 1) resetParticle(index, true);
+  particleGeometry.attributes.position.needsUpdate = true;
+  particleGeometry.attributes.aAlpha.needsUpdate = true;
+
+  const resizeThree = () => {
+    const width = threeContainer.offsetWidth;
+    const height = threeContainer.offsetHeight;
+    threeCamera.aspect = width / height;
+    threeCamera.updateProjectionMatrix();
+    threeRenderer.setSize(width, height);
+  };
+
+  const animateThree = (time) => {
+    const rotation = time * 0.00012;
+    acousticCube.rotation.y = rotation;
+    acousticCube.rotation.x = Math.sin(time * 0.00008) * 0.08;
+    cubeEdges.rotation.copy(acousticCube.rotation);
+    particleField.rotation.copy(acousticCube.rotation);
+    for (let index = 0; index < particleCount; index += 1) {
+      const offset = index * 3;
+      particleAges[index] += 16.67;
+      if (particleAges[index] > particleLives[index]) resetParticle(index);
+      particlePositions[offset] += particleVelocities[index].x;
+      particlePositions[offset + 1] += particleVelocities[index].y;
+      particlePositions[offset + 2] += particleVelocities[index].z;
+      const progress = particleAges[index] / particleLives[index];
+      const fadeIn = Math.min(1, progress * 8);
+      const fadeOut = Math.min(1, (1 - progress) * 5);
+      particleAlphas[index] = fadeIn * fadeOut * 0.72;
+    }
+    particleGeometry.attributes.position.needsUpdate = true;
+    particleGeometry.attributes.aAlpha.needsUpdate = true;
+    ultravioletLight.intensity = 2 + Math.sin(time * 0.0014) * 0.35;
+    threeRenderer.render(threeScene, threeCamera);
+    requestAnimationFrame(animateThree);
+  };
+
+  window.addEventListener('resize', resizeThree);
+  requestAnimationFrame(animateThree);
+</script>
 
 </body>
 </html>

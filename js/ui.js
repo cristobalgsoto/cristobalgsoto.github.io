@@ -475,9 +475,8 @@ function renderRT60Chart(res, method) {
     return d.map((v, i) => {
       if (v === null || v === undefined || !isFinite(v)) return '';
       return `<circle cx="${xPos(i).toFixed(1)}" cy="${yPos(v).toFixed(1)}" r="4"
-        fill="${color}" stroke="var(--bg)" stroke-width="1.5">
-        <title>${BAND_LABELS[i]}Hz: ${v.toFixed(1)}s</title>
-      </circle>`;
+        fill="${color}" stroke="var(--bg)" stroke-width="1.5"
+        data-tooltip="${BAND_LABELS[i]}Hz: ${v.toFixed(1)}s"></circle>`;
     }).join('');
   };
 
@@ -489,13 +488,13 @@ function renderRT60Chart(res, method) {
     return `<line x1="${PAD.left}" y1="${y.toFixed(1)}" x2="${PAD.left + innerW}" y2="${y.toFixed(1)}"
       stroke="var(--border2)" stroke-width="0.5" stroke-dasharray="4,3"/>
       <text x="${(PAD.left - 8).toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="end"
-        font-size="10" fill="var(--text3)" font-family="var(--font-mono)">${v.toFixed(1)}</text>`;
+        font-size="11" fill="var(--text3)" font-family="var(--font-mono)">${v.toFixed(1)}</text>`;
   }).join('');
 
   // Etiquetas X
   const xLabels = BAND_LABELS.map((lbl, i) =>
     `<text x="${xPos(i).toFixed(1)}" y="${(PAD.top + innerH + 20).toFixed(1)}"
-      text-anchor="middle" font-size="10" fill="var(--text3)" font-family="var(--font-mono)">${lbl}</text>`
+      text-anchor="middle" font-size="11" fill="var(--text3)" font-family="var(--font-mono)">${lbl}</text>`
   ).join('');
 
   // Líneas verticales
@@ -515,15 +514,15 @@ function renderRT60Chart(res, method) {
 
   // Eje labels
   const yAxisLabel = `<text transform="rotate(-90)" x="${-(PAD.top + innerH / 2)}" y="14"
-    text-anchor="middle" font-size="10" fill="var(--text3)" font-family="var(--font-mono)">RT60 (s)</text>`;
+    text-anchor="middle" font-size="11" fill="var(--text3)" font-family="var(--font-mono)">RT60 (s)</text>`;
   const xAxisLabel = `<text x="${(PAD.left + innerW / 2).toFixed(1)}" y="${(H - 4).toFixed(1)}"
-    text-anchor="middle" font-size="10" fill="var(--text3)" font-family="var(--font-mono)">Frecuencia (Hz)</text>`;
+    text-anchor="middle" font-size="11" fill="var(--text3)" font-family="var(--font-mono)">Frecuencia (Hz)</text>`;
 
   // Etiqueta del método activo (reemplaza la leyenda multi-curva)
   const legendEl = `<g transform="translate(${PAD.left}, ${(PAD.top + innerH + 30).toFixed(1)})">
     <line x1="0" y1="7" x2="18" y2="7" stroke="${def.color}" stroke-width="2.5" stroke-linecap="round"/>
     <circle cx="9" cy="7" r="3" fill="${def.color}"/>
-    <text x="22" y="11" font-size="10" fill="var(--text2)" font-family="var(--font-body)">${def.label}</text>
+    <text x="22" y="11" font-size="11" fill="var(--text2)" font-family="var(--font-body)">${def.label}</text>
   </g>`;
 
   const totalH = H + 30;

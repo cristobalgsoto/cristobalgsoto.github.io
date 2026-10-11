@@ -178,9 +178,6 @@ function updateSimulatorCubeDimensions() {
   const W = parseFloat(document.getElementById('w-ancho')?.value) || 4.5;
   const H = parseFloat(document.getElementById('w-alto')?.value) || 2.8;
 
-  const label = document.getElementById('sim-iso-dim-lbl');
-  if (label) label.textContent = `${L} × ${W} × ${H} m`;
-
   if (_simThreeState) {
     _updateSimulatorRoomMesh(_simThreeState, L, W, H);
   } else {

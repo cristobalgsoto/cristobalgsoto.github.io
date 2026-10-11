@@ -9,14 +9,12 @@
     .results-page { min-height:100vh; padding-top:52px; padding-bottom:60px; background:var(--bg); }
     .results-inner { max-width:1300px; margin:0 auto; padding:28px 24px 0; }
     .results-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
-    .results-title { font-size:11px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--text3); font-family:var(--font-mono); }
-    .res-field-group { margin-bottom:10px; }
-    .res-field-label { display:block; font-size:10px; color:var(--text3); margin-bottom:4px; font-family:var(--font-mono); }
+    .results-title { font-size:12px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--text3); font-family:var(--font-mono); }
 
     /* ── Gráfico RT60 ── */
     #rt-chart {
       width:100%;
-      height:260px;
+      height:220px;
       margin-top:16px;
       border-radius:8px;
       background: var(--surface2);
@@ -24,7 +22,7 @@
       overflow: visible;
     }
     .rt-chart-title {
-      font-size:10px;
+      font-size:11px;
       font-family:var(--font-mono);
       color:var(--text3);
       text-transform:uppercase;
@@ -44,16 +42,20 @@
       border-radius:6px;
       padding:10px;
     }
-    .surf-area-name { font-size:10px; color:var(--text3); font-family:var(--font-mono); margin-bottom:4px; }
-    .surf-area-val  { font-size:16px; font-weight:700; color:var(--text); font-family:var(--font-mono); }
+    .surf-area-name { font-size:11px; color:var(--text3); font-family:var(--font-mono); margin-bottom:4px; }
+    .surf-area-val  { font-size:17px; font-weight:700; color:var(--text); font-family:var(--font-mono); }
     .surf-area-unit { font-size:11px; color:var(--text3); }
 
     /* ── Bolt SVG corregido ── */
     .bolt-wrap { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
-    .bolt-chart-box { aspect-ratio:1; width:100%; }
+    .bolt-chart-box { aspect-ratio:1; width:100%; max-width:380px; justify-self:center; }
     .bolt-ratio { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border2); }
     .bolt-ratio-lbl { font-size:12px; color:var(--text3); }
-    .bolt-ratio-val { font-family:var(--font-mono); font-size:13px; font-weight:600; color:var(--text); }
+    .bolt-ratio-val { font-family:var(--font-mono); font-size:14px; font-weight:600; color:var(--text); }
+    @media (max-width:720px) {
+      .bolt-wrap { grid-template-columns:1fr; }
+      .bolt-chart-box { width:min(100%, 360px); }
+    }
   </style>
 </head>
 <body>
@@ -66,7 +68,7 @@
 <nav class="nav">
   <div class="nav-brand">AQVIS</div>
   <div style="display:flex;gap:8px">
-    <button class="nav-btn" onclick="window.location.href='simulator.html'">← Nueva simulación</button>
+    <button class="nav-btn" onclick="window.location.href='simulator.html'">← Recalcular</button>
     <button class="nav-btn" onclick="goHome()">← Inicio</button>
     <button id="theme-toggle" class="nav-btn theme-btn" onclick="toggleTheme()" aria-label="Cambiar tema"></button>
   </div>
@@ -82,100 +84,23 @@
 
     <div class="results-grid">
 
-      <!-- ══ COLUMNA IZQUIERDA ══ -->
-      <div class="left-col">
-
-        <div class="panel-card">
-          <div class="panel-title">Geometría</div>
-          <div class="field-row-3" style="gap:8px">
-            <div class="res-field-group">
-              <span class="res-field-label">Largo</span>
-              <div style="position:relative">
-                <input class="res-field-input" type="number" id="res-largo" value="6.0" step="0.1" min="0.5" max="20">
-                <span class="res-unit">m</span>
-              </div>
-            </div>
-            <div class="res-field-group">
-              <span class="res-field-label">Ancho</span>
-              <div style="position:relative">
-                <input class="res-field-input" type="number" id="res-ancho" value="4.5" step="0.1" min="0.5" max="20">
-                <span class="res-unit">m</span>
-              </div>
-            </div>
-            <div class="res-field-group">
-              <span class="res-field-label">Altura</span>
-              <div style="position:relative">
-                <input class="res-field-input" type="number" id="res-alto" value="2.8" step="0.1" min="0.5" max="20">
-                <span class="res-unit">m</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel-card">
-          <div class="panel-title">Temperatura</div>
-          <div class="slider-row">
-            <!-- ✅ Rango: 10–30°C -->
-            <input type="range" id="res-temp" min="10" max="30" value="20"
-              data-val-id="res-temp-val" data-suffix="°C">
-            <span class="slider-val" id="res-temp-val">20°C</span>
-          </div>
-        </div>
-
-        <div class="panel-card">
-          <div class="panel-title">Materiales</div>
-          <!-- ✅ Dropdowns reconstruidos por buildMaterialDropdowns() -->
-          <div class="mat-row" style="margin-bottom:7px">
-            <span class="mat-lbl">Piso</span>
-            <select class="mat-select" id="res-mat-piso" onchange="updateAlphaDisplay(this,'res-alpha-piso')"></select>
-            <span class="mat-alpha" id="res-alpha-piso">ᾱ —</span>
-          </div>
-          <div class="mat-row" style="margin-bottom:7px">
-            <span class="mat-lbl">Techo</span>
-            <select class="mat-select" id="res-mat-techo" onchange="updateAlphaDisplay(this,'res-alpha-techo')"></select>
-            <span class="mat-alpha" id="res-alpha-techo">ᾱ —</span>
-          </div>
-          <div class="mat-row" style="margin-bottom:7px">
-            <span class="mat-lbl">Pared 1</span>
-            <select class="mat-select" id="res-mat-pared1" onchange="updateAlphaDisplay(this,'res-alpha-pared1')"></select>
-            <span class="mat-alpha" id="res-alpha-pared1">ᾱ —</span>
-          </div>
-          <div class="mat-row" style="margin-bottom:7px">
-            <span class="mat-lbl">Pared 2</span>
-            <select class="mat-select" id="res-mat-pared2" onchange="updateAlphaDisplay(this,'res-alpha-pared2')"></select>
-            <span class="mat-alpha" id="res-alpha-pared2">ᾱ —</span>
-          </div>
-          <div class="mat-row" style="margin-bottom:7px">
-            <span class="mat-lbl">Pared 3</span>
-            <select class="mat-select" id="res-mat-pared3" onchange="updateAlphaDisplay(this,'res-alpha-pared3')"></select>
-            <span class="mat-alpha" id="res-alpha-pared3">ᾱ —</span>
-          </div>
-          <div class="mat-row">
-            <span class="mat-lbl">Pared 4</span>
-            <select class="mat-select" id="res-mat-pared4" onchange="updateAlphaDisplay(this,'res-alpha-pared4')"></select>
-            <span class="mat-alpha" id="res-alpha-pared4">ᾱ —</span>
-          </div>
-        </div>
-
-        <button class="recalc-btn" onclick="recalculate()">
-          <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-            <path d="M2 7a5 5 0 1 0 1-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            <path d="M2 4v3h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Recalcular
-        </button>
-      </div>
-
       <!-- ══ VISTA 3D ══ -->
       <div class="iso-panel">
-        <div class="iso-header">
-          <div class="panel-title" style="margin-bottom:0;font-size:9px">Vista isométrica</div>
-          <div class="iso-badge" id="iso-badge">— × — × — m</div>
-        </div>
         <div class="iso-viewport" style="flex:1">
           <div class="iso-grid-bg"></div>
           <div id="three-container" style="position:absolute;inset:0;z-index:1"></div>
-          <div class="iso-dim-lbl" id="iso-dim-lbl">—</div>
+          <div class="three-camera-controls" aria-label="Controles de cámara 3D">
+            <div class="orbit-pad" aria-label="Orientar cámara">
+              <button class="orbit-btn orbit-up" type="button" onclick="moveThreeCamera('up')" onpointerdown="startCameraHold('up')" onpointerup="stopCameraHold()" onpointerleave="stopCameraHold()" onpointercancel="stopCameraHold()" aria-label="Rotar hacia arriba">&#8593;</button>
+              <button class="orbit-btn orbit-left" type="button" onclick="moveThreeCamera('left')" onpointerdown="startCameraHold('left')" onpointerup="stopCameraHold()" onpointerleave="stopCameraHold()" onpointercancel="stopCameraHold()" aria-label="Rotar hacia la izquierda">&#8592;</button>
+              <button class="orbit-btn orbit-right" type="button" onclick="moveThreeCamera('right')" onpointerdown="startCameraHold('right')" onpointerup="stopCameraHold()" onpointerleave="stopCameraHold()" onpointercancel="stopCameraHold()" aria-label="Rotar hacia la derecha">&#8594;</button>
+              <button class="orbit-btn orbit-down" type="button" onclick="moveThreeCamera('down')" onpointerdown="startCameraHold('down')" onpointerup="stopCameraHold()" onpointerleave="stopCameraHold()" onpointercancel="stopCameraHold()" aria-label="Rotar hacia abajo">&#8595;</button>
+            </div>
+            <div class="zoom-controls" aria-label="Zoom">
+              <button class="zoom-btn" type="button" onclick="zoomThreeCamera('in')" aria-label="Acercar">+</button>
+              <button class="zoom-btn" type="button" onclick="zoomThreeCamera('out')" aria-label="Alejar">-</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -241,7 +166,7 @@
                 <div class="param-unit">metros</div>
               </div>
             </div>
-            <div style="font-size:9px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);font-family:var(--font-mono);margin-bottom:10px">Área por superficie</div>
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);font-family:var(--font-mono);margin-bottom:10px">Área por superficie</div>
             <div class="geo-surf-grid" id="geo-surf-grid"></div>
           </div>
 
@@ -249,7 +174,13 @@
           <div id="tab-decay" class="tab-pane">
             <!-- Selector de método RT60 -->
             <div class="mode-toggle" id="decay-method-toggle" style="margin-bottom:18px"></div>
-            <div class="selected-mode-label" id="decay-3d-label">Reflexiones 3D: Sabine</div>
+            <div class="decay-control-row">
+              <div class="decay-control-copy">
+                <div class="selected-mode-label" id="decay-3d-label">Reflexiones 3D: Sabine</div>
+                <span class="decay-control-hint">Controla la animación de reflexiones dentro del cubo.</span>
+              </div>
+              <button id="decay-play-toggle" class="decay-play-btn" type="button" onclick="toggleDecayPlayback()" aria-label="Pausar animación de Decay" aria-pressed="true" title="Pausar animación">&#10074;&#10074;</button>
+            </div>
 
             <!-- Gráfico RT60 2D — una curva a la vez -->
             <div class="rt-chart-title">RT60 — Frecuencia vs Tiempo de Reverberación</div>
@@ -264,19 +195,31 @@
               <div class="schroeder-lbl">Frecuencia de Schroeder: <strong id="schroeder-val">—</strong></div>
               <div class="zone-hint">zona modal ↓ · zona estadística →</div>
             </div>
-            <div class="selected-mode-label" id="selected-mode-label">Selecciona un modo para visualizarlo en 3D</div>
-
-            <div class="density-card">
-              <div class="density-title">Densidad modal por banda</div>
-              <div id="modes-density-chart"></div>
-              <div class="legend-row">
-                <div class="legend-item"><span class="legend-dot" style="background:#e4e4e4"></span>Axial</div>
-                <div class="legend-item"><span class="legend-dot" style="background:#7c7c7c"></span>Tangencial</div>
-                <div class="legend-item"><span class="legend-dot" style="background:#f0b432"></span>Oblicuo</div>
-              </div>
+            <div class="modes-view-tabs" role="tablist" aria-label="Vista de modos">
+              <button class="modes-view-btn active" type="button" role="tab" aria-selected="true" onclick="setModesView('histogram',this)">Histograma</button>
+              <button class="modes-view-btn" type="button" role="tab" aria-selected="false" onclick="setModesView('visualization',this)">Visualización</button>
             </div>
 
-            <div class="modes-cols" id="modes-cols"></div>
+            <div class="modes-view-pane active" id="modes-view-histogram">
+              <div class="density-card">
+                <div class="density-title">Densidad modal por banda</div>
+                <p class="histogram-help">Este histograma muestra cuántos modos propios aparecen en cada banda de frecuencia y cómo se distribuyen entre modos axiales, tangenciales y oblicuos. Permite identificar zonas de mayor concentración modal y evaluar, junto con la frecuencia de Schroeder, dónde el comportamiento del recinto deja de estar dominado por resonancias individuales.</p>
+                <div id="modes-density-chart"></div>
+                <div class="legend-row">
+                  <div class="legend-item"><span class="legend-dot" style="background:var(--mode-axial)"></span>Axial</div>
+                  <div class="legend-item"><span class="legend-dot" style="background:var(--mode-tangential)"></span>Tangencial</div>
+                  <div class="legend-item"><span class="legend-dot" style="background:var(--mode-oblique)"></span>Oblicuo</div>
+                </div>
+              </div>
+              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">zona modal ↓</div>
+            </div>
+
+            <div class="modes-view-pane" id="modes-view-visualization">
+              <div class="selected-mode-label" id="selected-mode-label">Selecciona un modo para visualizarlo en 3D</div>
+              <p class="modes-help">Los modos propios son las frecuencias naturales de resonancia del recinto. Cada modo describe una distribución específica de máximos y mínimos de presión dentro del espacio. Haz clic en una frecuencia para resaltarla y observar su patrón espacial directamente en el cubo 3D.</p>
+              <div class="modes-type-tabs" id="modes-type-tabs" role="tablist" aria-label="Tipo de modo"></div>
+              <div class="modes-cols" id="modes-cols"></div>
+            </div>
           </div>
 
           <!-- Región de Bolt — gráfico generado por JS desde aqengine.js -->
@@ -308,7 +251,7 @@
                   <div class="legend-item"><span class="legend-dot" style="background:var(--surface);border:1.3px solid var(--text3)"></span>Louden / Sepmeyer (referencia)</div>
                 </div>
 
-                <div style="margin-top:12px;font-size:9px;color:var(--text3);font-family:var(--font-mono);line-height:1.6">
+                <div style="margin-top:12px;font-size:10px;color:var(--text3);font-family:var(--font-mono);line-height:1.6">
                   Región de Bolt (1946) — aproximación trazada de la fuente original.
                   Puntos de referencia: Louden (1971), Sepmeyer (1965).
                 </div>
