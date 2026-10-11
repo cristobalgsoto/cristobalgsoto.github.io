@@ -278,7 +278,7 @@ function getInputs() {
       }
     }
 
-    return { name: def.name, area: def.area, alpha, materialName, treatment };
+    return { id: def.id, name: def.name, area: def.area, alpha, materialName, treatment };
   });
 
   return { L, W, H, T, surfaces, hasTreatment: wizardState.hasTreatment === true };
@@ -290,6 +290,9 @@ function runAndRedirect() {
   const clean = JSON.parse(JSON.stringify(result, (_, value) =>
     typeof value === 'number' && !Number.isFinite(value) ? null : value
   ));
+
+  input.schemaVersion = AQVIS_SCHEMA_VERSION;
+  clean.schemaVersion = AQVIS_SCHEMA_VERSION;
 
   sessionStorage.setItem('aqvis_input', JSON.stringify(input));
   sessionStorage.setItem('aqvis_result', JSON.stringify(clean));

@@ -30,6 +30,39 @@
 const BANDS       = [125, 250, 500, 1000, 2000, 4000];
 const BAND_LABELS = ['125', '250', '500', '1k', '2k', '4k'];
 
+// Versión del esquema de los objetos input/result que wizard.js guarda en
+// sessionStorage y que results.html/renderer.js vuelve a leer. Sube este
+// número solo cuando cambies la FORMA de esos objetos (campos agregados con
+// valor opcional no cuentan); el lado que lee puede entonces detectar datos
+// de una versión anterior y descartarlos en vez de asumir una forma que ya
+// no es cierta.
+const AQVIS_SCHEMA_VERSION = 1;
+
+// Orden canónico que calculate() asume en input.surfaces[] — lo necesita
+// Fitzroy para agrupar pares de superficies opuestas por índice fijo (ver
+// comentario junto a RT_fitzroy). Si quien arma el input (wizard.js) deja de
+// enviar las superficies en este orden, validateSurfaceOrder() lo detecta y
+// falla con un error explícito en vez de devolver un RT60 Fitzroy incorrecto
+// en silencio.
+const SURFACE_ORDER = ['piso', 'techo', 'pared1', 'pared2', 'pared3', 'pared4'];
+
+function validateSurfaceOrder(surfaces) {
+  if (!Array.isArray(surfaces) || surfaces.length !== SURFACE_ORDER.length) {
+    throw new Error(
+      `calculate(): se esperaban ${SURFACE_ORDER.length} superficies (${SURFACE_ORDER.join(', ')}), ` +
+      `se recibieron ${surfaces?.length ?? 0}.`
+    );
+  }
+  surfaces.forEach((sf, i) => {
+    if (sf.id && sf.id !== SURFACE_ORDER[i]) {
+      throw new Error(
+        `calculate(): orden de superficies inválido en el índice ${i} — se esperaba "${SURFACE_ORDER[i]}" ` +
+        `y se recibió "${sf.id}". El cálculo de Fitzroy asume este orden exacto (ver RT_fitzroy en calculate()).`
+      );
+    }
+  });
+}
+
 // ── Región de Bolt (1946) ──────────────────────────────────────
 // Los ejes del diagrama original NO son L/H y W/H directamente: son
 // las 3 dimensiones de la sala ORDENADAS de menor a mayor, expresadas
@@ -207,6 +240,7 @@ function interpretRT(RT_mid) {
  */
 function calculate(input) {
   const { L, W, H, T, surfaces, hasTreatment = false } = input;
+  validateSurfaceOrder(surfaces);
 
   // ── Geometría ───────────────────────────────────────────────
   const V       = L * W * H;
@@ -399,4 +433,17 @@ function computeModes(L, W, H, c, schroeder) {
 
   modes.sort((a, b) => a.f - b.f);
   return modes; // lista completa; la UI decide cómo agregarla/curarla
+}
+
+// ════════════════════════════════════════════════════════════════
+// EXPORTS (solo Node/tests — en el navegador `module` no existe y
+// este bloque no se ejecuta, así que no cambia nada del sitio en vivo)
+// ════════════════════════════════════════════════════════════════
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    calculate, speedOfSound, combineAlphaByArea, classifyRT, interpretRT,
+    getConstructionForSurface, getTreatmentForSurface, pointInPolygon, computeModes,
+    CONSTRUCTION_MATERIALS, TREATMENT_MATERIALS, BANDS, BAND_LABELS,
+    AIR_ABS_COEFF, AQVIS_SCHEMA_VERSION,
+  };
 }

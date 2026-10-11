@@ -685,7 +685,7 @@ function updateThreeCubeDimensions() {
 
 function renderDecay(res) {
   // El selector de método (Sabine/Eyring/Fitzroy/Millington) y el
-  // gráfico en sí viven en ui.js (renderDecayToggle / renderRT60Chart) —
+  // gráfico en sí viven en results.js (renderDecayToggle / renderRT60Chart) —
   // acá solo se delega y se arma la nota interpretativa.
   if (typeof renderDecayToggle === 'function') renderDecayToggle(res);
 
@@ -1053,6 +1053,14 @@ document.addEventListener('DOMContentLoaded', () => {
   try {
     inp = rawInp ? JSON.parse(rawInp) : defaultInp;
     res = rawRes ? JSON.parse(rawRes) : calculate(inp);
+    // Datos de una versión de esquema distinta (p.ej. sessionStorage de una
+    // pestaña vieja tras un cambio de forma futuro) no son de confiar —
+    // se descartan y se recalcula con los valores por defecto en vez de
+    // asumir una forma que puede ya no ser cierta.
+    if (inp?.schemaVersion && inp.schemaVersion !== AQVIS_SCHEMA_VERSION) {
+      inp = defaultInp;
+      res = calculate(defaultInp);
+    }
   } catch(e) {
     inp = defaultInp;
     res = calculate(defaultInp);
@@ -1082,4 +1090,4 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// syncSlider() vive en ui.js (carga antes que este archivo en results.html).
+// syncSlider() vive en app.js (carga antes que este archivo en results.html).
