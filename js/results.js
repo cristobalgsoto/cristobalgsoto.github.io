@@ -17,7 +17,11 @@ function renderDecayToggle(res) {
   const entries = Object.entries(DECAY_METHODS).filter(([, method]) => method.always || res.hasTreatment);
   wrap.innerHTML = entries.map(([key, method]) => {
     const values = res[method.key];
-    const middle = values ? (values[3] ?? values[2]) : null;
+    // El punto de estado de cada método se juzga con la MISMA definición que
+    // el valor del resumen: media de las seis bandas de 125 Hz a 4 kHz. Antes
+    // miraba sólo 1 kHz, así que podía contradecir a la insignia del resumen.
+    const validas = (values || []).filter((v) => Number.isFinite(v));
+    const middle = validas.length ? validas.reduce((a, b) => a + b, 0) / validas.length : null;
     const status = middle === null || middle === undefined ? '' : `<span class="decay-status-dot rt-${classifyRT(middle)}"></span>`;
     return `<button type="button" class="mtog-btn${key === decayMethod ? ' active' : ''}" onclick="setDecayMethod('${key}')">${status}${method.label}</button>`;
   }).join('');

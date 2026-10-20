@@ -690,7 +690,7 @@ function renderDecay(res) {
   if (typeof renderDecayToggle === 'function') renderDecayToggle(res);
 
   const noteEl = document.getElementById('rt-note-text');
-  if (noteEl) noteEl.innerHTML = interpretRT(res.RT_mid);
+  if (noteEl) noteEl.innerHTML = interpretRT(res.RT_avg);
 }
 
 // ── Variables Iniciales ───────────────────────────

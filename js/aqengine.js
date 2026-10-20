@@ -36,7 +36,7 @@ const BAND_LABELS = ['125', '250', '500', '1k', '2k', '4k'];
 // valor opcional no cuentan); el lado que lee puede entonces detectar datos
 // de una versión anterior y descartarlos en vez de asumir una forma que ya
 // no es cierta.
-const AQVIS_SCHEMA_VERSION = 1;
+const AQVIS_SCHEMA_VERSION = 2;  // 2: RT_avg (Sabine, 125 Hz-4 kHz) sustituye a RT_mid como valor del resumen
 
 // Orden canónico que calculate() asume en input.surfaces[] — lo necesita
 // Fitzroy para agrupar pares de superficies opuestas por índice fijo (ver
@@ -209,18 +209,21 @@ function combineAlphaByArea(baseAlpha, treatAlpha, surfaceArea, treatArea) {
   );
 }
 
+// Reciben el valor que se presenta como resumen (RT_avg: Sabine, media de
+// 125 Hz a 4 kHz), no el T_mid de medias frecuencias. Los umbrales son de
+// lectura general, no de una norma.
 function classifyRT(rt) {
   if (rt >= 0.4 && rt <= 0.9) return 'good';
   if (rt >= 0.3 && rt <= 1.3) return 'warn';
   return 'bad';
 }
 
-function interpretRT(RT_mid) {
-  const rt = RT_mid.toFixed(1);
-  if (RT_mid < 0.3)  return `RT60 de <strong>${rt} s</strong> — sala muy absorbente. Puede sonar apagada.`;
-  if (RT_mid <= 0.7) return `RT60 de <strong>${rt} s</strong> — rango adecuado para uso general.`;
-  if (RT_mid <= 1.2) return `RT60 de <strong>${rt} s</strong> — algo elevado. Considera tratamiento absorbente.`;
-  if (RT_mid <= 2.0) return `RT60 de <strong>${rt} s</strong> — sala reverberante. Adecuado para música.`;
+function interpretRT(rtValor) {
+  const rt = rtValor.toFixed(1);
+  if (rtValor < 0.3)  return `RT60 de <strong>${rt} s</strong> — sala muy absorbente. Puede sonar apagada.`;
+  if (rtValor <= 0.7) return `RT60 de <strong>${rt} s</strong> — rango adecuado para uso general.`;
+  if (rtValor <= 1.2) return `RT60 de <strong>${rt} s</strong> — algo elevado. Considera tratamiento absorbente.`;
+  if (rtValor <= 2.0) return `RT60 de <strong>${rt} s</strong> — sala reverberante. Adecuado para música.`;
   return `RT60 de <strong>${rt} s</strong> — muy reverberante. Se recomienda tratamiento acústico.`;
 }
 
@@ -272,8 +275,38 @@ function calculate(input) {
     return parseFloat(((0.161 * V) / denom).toFixed(1));
   });
 
-  // RT60 mid: promedio 500Hz + 1kHz (índices 2 y 3)
-  const RT_mid = (RT_eyring[2] + RT_eyring[3]) / 2;
+  // ── Los dos tiempos de reverberación representativos ─────────
+  //
+  // RT_avg — VALOR PRINCIPAL, el que se muestra en el resumen.
+  //   Media aritmética de las seis bandas de octava de 125 Hz a 4 kHz,
+  //   calculadas por SABINE.
+  //
+  //   Por qué Sabine y no Eyring: los coeficientes de absorción tabulados
+  //   que alimentan este motor se miden en cámara reverberante por el
+  //   propio método de Sabine, así que usarlos en su ecuación es
+  //   autoconsistente. Eyring es más exacto cuando la absorción media es
+  //   alta (Sabine no tiende a cero cuando α→1), y por eso se mantiene
+  //   calculado y a la vista en la pestaña Decay, pero el valor que se
+  //   presenta como resumen es el de Sabine.
+  //
+  //   Por qué las seis bandas: el resultado se presenta como una
+  //   caracterización global del recinto para uso general, no como el
+  //   T_mid de la norma. ATENCIÓN al interpretarlo: la banda de 125 Hz
+  //   suele quedar POR DEBAJO de la frecuencia de Schroeder de la sala,
+  //   donde el modelo estadístico de campo difuso que sustenta a Sabine
+  //   y a Eyring deja de ser válido. En salas pequeñas con tratamiento
+  //   esa banda es además la de mayor RT, así que tira del promedio
+  //   hacia arriba. La curva por bandas de la pestaña Decay es la
+  //   lectura fiel; este promedio es un resumen.
+  //
+  // RT_mid — tiempo de reverberación de MEDIAS FRECUENCIAS: media de las
+  //   bandas de 500 Hz y 1 kHz (índices 2 y 3), el T_mid habitual. No se
+  //   muestra como titular, pero es el que alimenta la frecuencia de
+  //   Schroeder, porque la expresión f_s = 2000·√(T/V) se formula sobre
+  //   el tiempo de reverberación de medias frecuencias.
+  const media = (bandas) => bandas.reduce((a, b) => a + (b || 0), 0) / bandas.length;
+  const RT_avg = media(RT_sabine);
+  const RT_mid = (RT_sabine[2] + RT_sabine[3]) / 2;
 
   // ── RT60 Fitzroy — solo si hasTreatment ─────────────────────
   // Fórmula correcta: Fitzroy (1959) / Bies & Hansen (6ª ed., 2024)
@@ -364,7 +397,7 @@ function calculate(input) {
     areasBySurface,
     alpha_avg, A_bands, alpha_avg_bands,
     RT_sabine, RT_eyring, RT_fitzroy, RT_millington,
-    RT_mid, hasTreatment,
+    RT_avg, RT_mid, hasTreatment,
     R, dc, schroeder,
     LH, WH, inBolt, boltMargin,
     boltX, boltY, nearestBoltPoint,
