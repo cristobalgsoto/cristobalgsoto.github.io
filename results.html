@@ -33,18 +33,21 @@
     /* ── Áreas por superficie ── */
     .geo-surf-grid {
       display:grid;
-      grid-template-columns:repeat(auto-fill, minmax(120px,1fr));
+      grid-template-columns:repeat(auto-fill, minmax(190px,1fr));
       gap:8px;
     }
-    .surf-area-card {
-      background:var(--surface2);
-      border:1px solid var(--border2);
-      border-radius:6px;
-      padding:10px;
-    }
-    .surf-area-name { font-size:11px; color:var(--text3); font-family:var(--font-mono); margin-bottom:4px; }
-    .surf-area-val  { font-size:17px; font-weight:700; color:var(--text); font-family:var(--font-mono); }
-    .surf-area-unit { font-size:11px; color:var(--text3); }
+    /* La ficha pasa de una linea (nombre | area) a tres: debajo del area va
+       el material de construccion y, si la superficie lleva tratamiento, una
+       tercera linea en --accent con su nombre y la superficie tratada. El
+       material determina la absorcion de la que sale todo el calculo y no
+       aparecia en ninguna pantalla de resultados. */
+    /* justify-content:space-between viene de global.css y en columna separa
+       la primera linea de la ultima, dejando el material pegado al fondo de
+       las fichas que la rejilla estira para igualar la fila. */
+    .geo-surf-item { flex-direction:column; justify-content:flex-start; align-items:stretch; gap:4px; }
+    .geo-surf-top  { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+    .geo-surf-mat  { font-size:10px; color:var(--text3); font-family:var(--font-mono); }
+    .geo-surf-trat { font-size:10px; color:var(--accent); font-family:var(--font-mono); }
 
     /* ── Bolt SVG corregido ── */
     .bolt-wrap { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
@@ -55,6 +58,98 @@
     @media (max-width:720px) {
       .bolt-wrap { grid-template-columns:1fr; }
       .bolt-chart-box { width:min(100%, 360px); }
+    }
+
+    /* ══ LAYOUT DOS COLUMNAS: análisis (izq) · 3D + resumen (der) ══ */
+    .results-inner { max-width:1480px; }
+    .results-grid {
+      grid-template-columns: minmax(0, 1.55fr) minmax(340px, 1fr);
+      grid-template-rows: auto;
+      align-items: start;
+      gap: 18px;
+    }
+    /* El panel de análisis acompaña la altura de la columna derecha: sin esto
+       una pestaña corta (Espacio) deja un hueco enorme bajo la tarjeta.
+       align-items:start se mantiene para que el sticky de .side-col tenga
+       recorrido dentro de su celda. */
+    .tabs-panel { grid-column: 1; grid-row: 1; align-self: stretch; }
+    .side-col {
+      grid-column: 2; grid-row: 1;
+      position: sticky; top: 70px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .side-col .iso-panel { grid-column: auto; grid-row: auto; padding: 14px; min-height: 0; }
+    .side-col .iso-viewport { min-height: 0; height: clamp(300px, 46vh, 460px); flex: none; }
+    .view-caption {
+      position:absolute; left:12px; top:12px; z-index:4;
+      font-size:10px; font-family:var(--font-mono); letter-spacing:0.12em; text-transform:uppercase;
+      color:var(--text2); background:var(--surface); border:1px solid var(--border2); box-shadow:var(--shadow-card);
+      padding:5px 10px; border-radius:var(--radius-pill); pointer-events:none;
+    }
+    .view-caption b { color:var(--accent); font-weight:600; }
+
+    /* Resumen siempre visible */
+    .summary-card {
+      background:var(--surface); box-shadow:var(--shadow-card);
+      border-radius:var(--radius-lg); padding:18px;
+    }
+    .summary-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .summary-kicker { font-size:10px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--text3); font-family:var(--font-mono); margin-bottom:6px; }
+    .summary-rt { font-size:40px; font-weight:700; line-height:1; color:var(--text); font-variant-numeric:tabular-nums; }
+    .summary-rt small { font-size:16px; font-weight:500; color:var(--text3); margin-left:4px; }
+    .summary-sub { font-size:11px; color:var(--text3); margin-top:6px; font-family:var(--font-mono); }
+    .summary-stats { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
+    .summary-stat { background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; }
+    .summary-stat-lbl { font-size:9px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text3); margin-bottom:6px; }
+    .summary-stat-val { font-size:16px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .summary-stat-val small { font-size:10px; font-weight:500; color:var(--text3); margin-left:2px; }
+    .summary-note { margin-top:12px; }
+    .summary-foot { margin-top:8px; font-size:10px; line-height:1.5; color:var(--text3); }
+    .summary-actions { display:flex; gap:8px; margin-top:14px; }
+    .summary-actions .recalc-btn { padding:10px; }
+
+    /* Tarjetas de parámetros más compactas dentro de la columna de análisis */
+    .tabs-panel .param-grid { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+    .tabs-panel .param-card { min-height: 112px; }
+    .param-hint { font-size:10px; color:var(--text3); line-height:1.45; margin-top:8px; }
+
+    /* Pestaña Espacio: una sola tarjeta, que no se estire a todo el ancho */
+    #tab-espacio .param-grid { grid-template-columns: repeat(auto-fit, minmax(170px, 260px)); justify-content: start; }
+
+    /* El párrafo de consejo de Bolt no se pinta de rojo: la insignia ya avisa */
+    #bolt-text { color: var(--text2) !important; }
+
+    /* Decay: el título del gráfico se pegaba al texto que controla la
+       animación, y la curva se quedaba pequeña en un panel ahora alto. */
+    .rt-chart-title { margin-top: 20px; }
+    #rt-chart { height: 300px; }
+
+    /* Una columna: resumen primero, luego el análisis, y el 3D al final */
+    @media (max-width: 1100px) {
+      .results-grid { grid-template-columns: 1fr; gap: 14px; }
+      .side-col { display: contents; }
+      .summary-card { grid-column: 1; grid-row: 1; }
+      .tabs-panel { grid-column: 1; grid-row: 2; min-height: 0; }
+      .side-col .iso-panel { grid-column: 1; grid-row: 3; }
+      .side-col .iso-viewport { height: clamp(260px, 42vh, 380px); }
+    }
+    @media (max-width: 520px) {
+      .results-inner { padding: 20px 16px 0; }
+      .summary-stat { padding:9px 10px; }
+      .summary-stat-val { font-size:15px; }
+      .summary-rt { font-size: 34px; }
+
+      /* Las cinco pestanas no caben en una fila a 390. .tab-nav se desplaza
+         en horizontal, pero sin indicio visible "Criterio de Bolt"
+         desaparece sin mas. A este ancho se reparten en dos filas. */
+      .tab-nav { flex-wrap: wrap; overflow-x: visible; }
+      .tab-btn { flex: 0 0 auto; }
+
+      /* El rotulo del resumen y la insignia partian cada uno en dos lineas y
+         descuadraban la cabecera de la tarjeta. */
+      .summary-kicker { font-size: 9px; letter-spacing: 0.1em; }
+      .summary-head .chip { white-space: nowrap; }
+      .summary-head { flex-wrap: wrap; }
     }
   </style>
 </head>
@@ -68,7 +163,6 @@
 <nav class="nav">
   <div class="nav-brand">AQVIS</div>
   <div style="display:flex;gap:8px">
-    <button class="nav-btn" onclick="window.location.href='simulator.html'">← Recalcular</button>
     <button class="nav-btn" onclick="goHome()">← Inicio</button>
     <button id="theme-toggle" class="nav-btn theme-btn" onclick="toggleTheme()" aria-label="Cambiar tema"></button>
   </div>
@@ -84,31 +178,11 @@
 
     <div class="results-grid">
 
-      <!-- ══ VISTA 3D ══ -->
-      <div class="iso-panel">
-        <div class="iso-viewport" style="flex:1">
-          <div class="iso-grid-bg"></div>
-          <div id="three-container" style="position:absolute;inset:0;z-index:1"></div>
-          <div class="three-camera-controls" aria-label="Controles de cámara 3D">
-            <div class="orbit-pad" aria-label="Orientar cámara">
-              <button class="orbit-btn orbit-up" type="button" onclick="moveThreeCamera('up')" onpointerdown="startCameraHold('up')" onpointerup="stopCameraHold()" onpointerleave="stopCameraHold()" onpointercancel="stopCameraHold()" aria-label="Rotar hacia arriba">&#8593;</button>
-              <button class="orbit-btn orbit-left" type="button" onclick="moveThreeCamera('left')" onpointerdown="startCameraHold('left')" onpointerup="stopCameraHold()" onpointerleave="stopCameraHold()" onpointercancel="stopCameraHold()" aria-label="Rotar hacia la izquierda">&#8592;</button>
-              <button class="orbit-btn orbit-right" type="button" onclick="moveThreeCamera('right')" onpointerdown="startCameraHold('right')" onpointerup="stopCameraHold()" onpointerleave="stopCameraHold()" onpointercancel="stopCameraHold()" aria-label="Rotar hacia la derecha">&#8594;</button>
-              <button class="orbit-btn orbit-down" type="button" onclick="moveThreeCamera('down')" onpointerdown="startCameraHold('down')" onpointerup="stopCameraHold()" onpointerleave="stopCameraHold()" onpointercancel="stopCameraHold()" aria-label="Rotar hacia abajo">&#8595;</button>
-            </div>
-            <div class="zoom-controls" aria-label="Zoom">
-              <button class="zoom-btn" type="button" onclick="zoomThreeCamera('in')" aria-label="Acercar">+</button>
-              <button class="zoom-btn" type="button" onclick="zoomThreeCamera('out')" aria-label="Alejar">-</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- ══ TABS ══ -->
       <div class="tabs-panel">
         <div class="tab-nav">
-          <button class="tab-btn active" onclick="showTab('vars',this)">Variables Iniciales</button>
-          <button class="tab-btn" onclick="showTab('espacio',this)">Espacio</button>
+          <button class="tab-btn active" onclick="showTab('espacio',this)">Espacio</button>
+          <button class="tab-btn" onclick="showTab('vars',this)">Parámetros</button>
           <button class="tab-btn" onclick="showTab('decay',this)">Decay</button>
           <button class="tab-btn" onclick="showTab('modos',this)">Modos</button>
           <button class="tab-btn" onclick="showTab('bolt',this)">Criterio de Bolt</button>
@@ -116,58 +190,54 @@
 
         <div class="tab-content">
 
-          <!-- Variables Iniciales -->
-          <div id="tab-vars" class="tab-pane active">
+          <!-- Espacio -->
+          <div id="tab-espacio" class="tab-pane active">
+            <div class="param-grid" style="margin-bottom:14px">
+              <div class="param-card">
+                <div class="param-lbl">Free mean path</div>
+                <div class="param-val" id="g-fmp">—</div>
+                <div class="param-unit">metros</div>
+                <div class="param-hint">Recorrido medio del sonido entre dos reflexiones sucesivas (4V/S).</div>
+              </div>
+            </div>
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);font-family:var(--font-mono);margin-bottom:10px">Superficies: material y área</div>
+            <div class="geo-surf-grid" id="geo-surf-grid"></div>
+          </div>
+
+          <!-- Parámetros acústicos (calculados) -->
+          <div id="tab-vars" class="tab-pane">
             <div class="param-grid">
               <div class="param-card">
                 <div class="param-lbl">Distancia crítica</div>
                 <div class="param-val" id="p-dc">—</div>
                 <div class="param-unit">metros</div>
+                <div class="param-hint">Distancia a la fuente donde el sonido directo iguala al reverberante.</div>
               </div>
               <div class="param-card">
                 <div class="param-lbl">Vel. del sonido</div>
                 <div class="param-val" id="p-vsound">—</div>
                 <div class="param-unit">m/s</div>
+                <div class="param-hint">Depende de la temperatura del aire.</div>
               </div>
               <div class="param-card">
                 <div class="param-lbl">α promedio</div>
                 <div class="param-val" id="p-alpha">—</div>
                 <div class="param-unit">coef. absorción</div>
+                <div class="param-hint">Absorción media ponderada por área (0 = refleja todo, 1 = absorbe todo).</div>
               </div>
               <div class="param-card">
                 <div class="param-lbl">Constante R</div>
                 <div class="param-val" id="p-R">—</div>
                 <div class="param-unit">m² Sabine</div>
+                <div class="param-hint">Absorción efectiva de la sala. Más alto = sala más seca.</div>
               </div>
               <div class="param-card">
                 <div class="param-lbl">Frec. Schroeder</div>
                 <div class="param-val" id="p-schroeder">—</div>
                 <div class="param-unit">Hz</div>
+                <div class="param-hint">Bajo esta frecuencia dominan los modos individuales.</div>
               </div>
             </div>
-          </div>
-
-          <!-- Espacio -->
-          <div id="tab-espacio" class="tab-pane">
-            <div class="param-grid" style="margin-bottom:14px">
-              <div class="param-card">
-                <div class="param-lbl">Volumen</div>
-                <div class="param-val" id="g-vol">—</div>
-                <div class="param-unit">m³</div>
-              </div>
-              <div class="param-card">
-                <div class="param-lbl">Área total</div>
-                <div class="param-val" id="g-area">—</div>
-                <div class="param-unit">m²</div>
-              </div>
-              <div class="param-card">
-                <div class="param-lbl">Free mean path</div>
-                <div class="param-val" id="g-fmp">—</div>
-                <div class="param-unit">metros</div>
-              </div>
-            </div>
-            <div style="font-size:11px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);font-family:var(--font-mono);margin-bottom:10px">Área por superficie</div>
-            <div class="geo-surf-grid" id="geo-surf-grid"></div>
           </div>
 
           <!-- Decay -->
@@ -186,7 +256,6 @@
             <div class="rt-chart-title">RT60 — Frecuencia vs Tiempo de Reverberación</div>
             <div id="rt-chart"></div>
 
-            <div class="note" style="margin-top:12px" id="rt-note-text">—</div>
           </div>
 
           <!-- Modos -->
@@ -211,7 +280,6 @@
                   <div class="legend-item"><span class="legend-dot" style="background:var(--mode-oblique)"></span>Oblicuo</div>
                 </div>
               </div>
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">zona modal ↓</div>
             </div>
 
             <div class="modes-view-pane" id="modes-view-visualization">
@@ -248,12 +316,12 @@
                 <div class="bolt-legend" style="margin-top:14px;display:flex;flex-direction:column;gap:6px">
                   <div class="legend-item"><span class="legend-dot" style="background:#64dc82"></span>Tu sala (dentro)</div>
                   <div class="legend-item"><span class="legend-dot" style="background:#f05050"></span>Tu sala (fuera)</div>
-                  <div class="legend-item"><span class="legend-dot" style="background:var(--surface);border:1.3px solid var(--text3)"></span>Louden / Sepmeyer (referencia)</div>
+                  <div class="legend-item"><span class="legend-dot" style="background:var(--surface);border:1.3px solid var(--text3)"></span>Proporciones de referencia</div>
                 </div>
 
                 <div style="margin-top:12px;font-size:10px;color:var(--text3);font-family:var(--font-mono);line-height:1.6">
-                  Región de Bolt (1946) — aproximación trazada de la fuente original.
-                  Puntos de referencia: Louden (1971), Sepmeyer (1965).
+                  Región de Bolt (1946), digitalizada de la figura (±0.02).
+                  Sepmeyer, Louden, Volkmann y Boner — no todas caen dentro.
                 </div>
               </div>
             </div>
@@ -261,6 +329,52 @@
 
         </div>
       </div>
+
+      <!-- ══ COLUMNA DERECHA: 3D + resumen ══ -->
+      <aside class="side-col">
+        <!-- ══ VISTA 3D ══ -->
+        <div class="iso-panel">
+          <div class="iso-viewport">
+            <div class="iso-grid-bg"></div>
+            <div class="view-caption" id="view-caption">Vista: <b>Espacio</b></div>
+            <div id="three-container" style="position:absolute;inset:0;z-index:1"></div>
+            <div class="three-camera-controls" aria-label="Controles de cámara 3D">
+              <div class="orbit-pad" aria-label="Orientar cámara">
+                <button class="orbit-btn orbit-up" type="button" onclick="moveThreeCamera('up')" onpointerdown="startCameraHold('up')" onpointerup="stopCameraHold()" onpointerleave="stopCameraHold()" onpointercancel="stopCameraHold()" aria-label="Rotar hacia arriba">&#8593;</button>
+                <button class="orbit-btn orbit-left" type="button" onclick="moveThreeCamera('left')" onpointerdown="startCameraHold('left')" onpointerup="stopCameraHold()" onpointerleave="stopCameraHold()" onpointercancel="stopCameraHold()" aria-label="Rotar hacia la izquierda">&#8592;</button>
+                <button class="orbit-btn orbit-right" type="button" onclick="moveThreeCamera('right')" onpointerdown="startCameraHold('right')" onpointerup="stopCameraHold()" onpointerleave="stopCameraHold()" onpointercancel="stopCameraHold()" aria-label="Rotar hacia la derecha">&#8594;</button>
+                <button class="orbit-btn orbit-down" type="button" onclick="moveThreeCamera('down')" onpointerdown="startCameraHold('down')" onpointerup="stopCameraHold()" onpointerleave="stopCameraHold()" onpointercancel="stopCameraHold()" aria-label="Rotar hacia abajo">&#8595;</button>
+              </div>
+              <div class="zoom-controls" aria-label="Zoom">
+                <button class="zoom-btn" type="button" onclick="zoomThreeCamera('in')" aria-label="Acercar">+</button>
+                <button class="zoom-btn" type="button" onclick="zoomThreeCamera('out')" aria-label="Alejar">-</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ RESUMEN (siempre visible) ══ -->
+        <div class="summary-card">
+          <div class="summary-head">
+            <div>
+              <div class="summary-kicker">RT60 medio · Sabine · 125 Hz – 4 kHz</div>
+              <div class="summary-rt"><span id="s-rt">—</span><small>s</small></div>
+              <div class="summary-sub" id="s-dims">—</div>
+            </div>
+            <span class="chip" id="s-chip">—</span>
+          </div>
+          <div class="summary-stats">
+            <div class="summary-stat"><div class="summary-stat-lbl">Volumen</div><div class="summary-stat-val"><span id="s-vol">—</span><small>m³</small></div></div>
+            <div class="summary-stat"><div class="summary-stat-lbl">Área total</div><div class="summary-stat-val"><span id="s-area">—</span><small>m²</small></div></div>
+            <div class="summary-stat"><div class="summary-stat-lbl">Temperatura</div><div class="summary-stat-val"><span id="s-temp">—</span><small>°C</small></div></div>
+          </div>
+          <div class="note summary-note" id="s-note">—</div>
+          <div class="summary-foot">El veredicto sigue a EBU Tech 3276: T<sub>m</sub> entre 0.2 y 0.4 s, y las seis bandas dentro de su brecha de tolerancia.</div>
+          <div class="summary-actions">
+            <button class="recalc-btn" type="button" onclick="window.location.href='simulator.html'">Editar sala y recalcular</button>
+          </div>
+        </div>
+      </aside>
 
     </div>
   </div>
@@ -272,5 +386,6 @@
 <script src="js/app.js"></script>
 <script src="js/results.js"></script>
 <script src="js/renderer.js"></script>
+<script src="js/layout.js"></script>
 </body>
 </html>

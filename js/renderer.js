@@ -689,8 +689,15 @@ function renderDecay(res) {
   // acá solo se delega y se arma la nota interpretativa.
   if (typeof renderDecayToggle === 'function') renderDecayToggle(res);
 
+  // La nota de la pestaña Decay dice lo mismo que el gráfico que tiene
+  // encima: cuántas bandas caen dentro del campo de tolerancia y cuáles no.
   const noteEl = document.getElementById('rt-note-text');
-  if (noteEl) noteEl.innerHTML = interpretRT(res.RT_avg);
+  if (noteEl && typeof lecturaEBU === 'function' && Array.isArray(res.RT_sabine)) {
+    const lm = lecturaEBU(res.RT_sabine, res.V, res.L, res.W);
+    noteEl.innerHTML = `<strong>${lm.etiqueta}</strong> — ${lm.nota}`;
+  } else if (noteEl) {
+    noteEl.innerHTML = interpretRT(res.RT_ebu, res.V);
+  }
 }
 
 // ── Variables Iniciales ───────────────────────────
@@ -884,13 +891,21 @@ function renderBolt(res) {
   const chip = document.getElementById('bolt-chip');
   const txt  = document.getElementById('bolt-text');
 
+  const claseBolt = res.boltClase || (res.inBolt ? 'good' : 'bad');
+  const ETIQUETA_BOLT = {
+    good: '✓ Dentro de la región',
+    warn: '≈ En el borde de la región',
+    bad:  '⚠ Fuera de la región',
+  };
+  const COLOR_BOLT = { good: 'var(--text2)', warn: '#f0b432', bad: '#f05050' };
+
   if (chip) {
-    chip.className   = 'chip ' + (res.inBolt ? 'chip-good' : 'chip-bad');
-    chip.textContent = res.inBolt ? '✓ Dentro de la región' : '⚠ Fuera de la región';
+    chip.className   = 'chip chip-' + claseBolt;
+    chip.textContent = ETIQUETA_BOLT[claseBolt];
   }
 
   if (txt) {
-    txt.style.color = res.inBolt ? 'var(--text2)' : '#f05050';
+    txt.style.color = COLOR_BOLT[claseBolt];
     txt.textContent = boltAdviceText(res);
   }
 
@@ -902,6 +917,10 @@ function renderBolt(res) {
 function boltAdviceText(res) {
   if (res.inBolt) {
     return 'Las proporciones caen dentro de la región de Bolt — distribución modal favorable.';
+  }
+  if (res.boltClase === 'warn') {
+    return 'Justo sobre el borde de la región (a ' + res.boltMargin.toFixed(2) + '), dentro de la ' +
+           'precisión con que se puede leer el gráfico original. Trátalo como aceptable.';
   }
   const dx = res.nearestBoltPoint.x - res.boltX;
   const dy = res.nearestBoltPoint.y - res.boltY;
@@ -1003,11 +1022,23 @@ function renderSpace(res, inp) {
 
   const grid = document.getElementById('geo-surf-grid');
   if (grid) {
-    grid.innerHTML = res.surfaces.map(sf => `
+    grid.innerHTML = res.surfaces.map(sf => {
+      // El tratamiento solo cubre parte de la superficie, asi que se muestra
+      // su area: es lo que explica que dos salas con el mismo material den
+      // RT60 distintos.
+      const trat = sf.treatment
+        ? `<span class="geo-surf-trat">+ ${sf.treatment.name} · ${sf.treatment.area.toFixed(1)} m²</span>`
+        : '';
+      return `
       <div class="geo-surf-item">
-        <span class="geo-surf-lbl">${sf.name}</span>
-        <span class="geo-surf-val">${sf.area.toFixed(1)} m²</span>
-      </div>`).join('');
+        <span class="geo-surf-top">
+          <span class="geo-surf-lbl">${sf.name}</span>
+          <span class="geo-surf-val">${sf.area.toFixed(1)} m²</span>
+        </span>
+        <span class="geo-surf-mat">${sf.materialName || '—'}</span>
+        ${trat}
+      </div>`;
+    }).join('');
   }
 }
 

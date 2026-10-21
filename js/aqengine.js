@@ -69,25 +69,61 @@ function validateSurfaceOrder(surfaces) {
 // como proporción respecto a la menor:
 //   x = dimensión intermedia / dimensión menor
 //   y = dimensión mayor      / dimensión menor
-// La región preferida no es un rectángulo — es un área irregular e
-// inclinada. El polígono de abajo se trazó a partir de una reproducción
-// del gráfico original de Bolt (1946); si necesitas citar coordenadas
-// exactas en un informe, verifícalas contra tu fuente.
+// La región preferida no es un rectángulo — es un área estrecha, alargada
+// e inclinada sobre la diagonal, con un escalón en el flanco derecho.
+//
+// El polígono se DIGITALIZÓ el 21/10/2026 píxel a píxel desde una
+// reproducción del gráfico original: se extraen los píxeles del trazo
+// dentro del recuadro, se descartan los discos de los puntos de
+// referencia, sus letras y el rótulo "Height = 1", se recorre el contorno
+// por sectores angulares con filtro de mediana y se simplifica con
+// Douglas-Peucker. Verificado por superposición sobre la figura original.
+//
+// El trazado anterior se había hecho a ojo y su punta inferior quedaba en
+// (1.40, 1.50) en vez de (1.23, 1.43): faltaba un tercio del área, y por
+// eso Sepmeyer B y Boner —dos proporciones óptimas publicadas— recibían
+// "fuera de la región".
+//
+// PRECISIÓN ESTIMADA ±0.02. Por eso hay banda de tolerancia: afirmar un
+// veredicto binario sobre una curva dibujada a mano en 1946 y redigitalizada
+// desde una reproducción sería falsa exactitud.
 const BOLT_POLYGON = [
-  [1.45, 1.45], [1.55, 1.55], [1.65, 1.75], [1.75, 1.95], [1.83, 2.10],
-  [1.87, 2.20], [1.83, 2.30], [1.72, 2.42], [1.60, 2.50], [1.50, 2.55],
-  [1.42, 2.45], [1.35, 2.25], [1.30, 2.05], [1.28, 1.88], [1.30, 1.70],
-  [1.35, 1.58], [1.40, 1.50],
+  [1.227, 1.425], [1.290, 1.463], [1.469, 1.700], [1.505, 1.735],
+  [1.732, 2.173], [1.731, 2.227], [1.633, 2.291], [1.540, 2.441],
+  [1.508, 2.477], [1.472, 2.494], [1.433, 2.482], [1.399, 2.442],
+  [1.374, 2.379], [1.361, 2.301], [1.353, 2.087], [1.323, 1.920],
+  [1.179, 1.549], [1.183, 1.451],
 ];
+
+// Tolerancia del veredicto, en unidades de proporción. Es CONVENCIÓN DE
+// AQVIS, no de Bolt: cubre el grosor del trazo original y el error de la
+// digitalización. Dentro de ella el veredicto es "en el borde", no un
+// suspenso.
+const BOLT_TOLERANCIA = 0.05;
+
+function claseBolt(dentro, margen) {
+  if (dentro) return 'good';
+  return margen <= BOLT_TOLERANCIA ? 'warn' : 'bad';
+}
 
 // Proporciones "óptimas" puntuales citadas en la literatura de acústica
 // de recintos, en el mismo espacio (media/menor, mayor/menor). Verificar
 // decimales contra la fuente si se citan con precisión en un informe.
+// Los ocho del diagrama original. OJO: no todos caen dentro de la región
+// de Bolt, y no es un error — Louden y Sepmeyer llegan a sus proporciones
+// por otro criterio (separación modal), no por el área de Bolt. Sepmeyer A
+// queda claramente fuera. Sepmeyer C, Louden B y Volkmann NO estan ni
+// dentro ni fuera: caen encima de la linea, a 0.004, 0.015 y 0.017, por
+// debajo del +-0.02 de precision del trazo. Para eso esta BOLT_TOLERANCIA.
 const BOLT_REFERENCE_RATIOS = [
-  { name: 'Louden (1971)',     x: 1.40, y: 1.90 },
   { name: 'Sepmeyer A (1965)', x: 1.14, y: 1.39 },
   { name: 'Sepmeyer B (1965)', x: 1.28, y: 1.54 },
   { name: 'Sepmeyer C (1965)', x: 1.60, y: 2.33 },
+  { name: 'Louden A (1971)',   x: 1.40, y: 1.90 },
+  { name: 'Louden B (1971)',   x: 1.30, y: 1.90 },
+  { name: 'Louden C (1971)',   x: 1.50, y: 2.10 },
+  { name: 'Volkmann 2:3:5',    x: 1.50, y: 2.50 },
+  { name: 'Boner 1:∛2:∛4',     x: 1.26, y: 1.59 },
 ];
 
 // Ray casting estándar — ¿el punto (x,y) cae dentro del polígono?
@@ -212,19 +248,316 @@ function combineAlphaByArea(baseAlpha, treatAlpha, surfaceArea, treatArea) {
 // Reciben el valor que se presenta como resumen (RT_avg: Sabine, media de
 // 125 Hz a 4 kHz), no el T_mid de medias frecuencias. Los umbrales son de
 // lectura general, no de una norma.
-function classifyRT(rt) {
-  if (rt >= 0.4 && rt <= 0.9) return 'good';
-  if (rt >= 0.3 && rt <= 1.3) return 'warn';
+// ════════════════════════════════════════════════════════════════
+// CRITERIO DE REVERBERACIÓN  —  EBU Tech 3276, 2ª edición (mayo 1998)
+//
+// ✅ VERIFICADO CONTRA EL DOCUMENTO. El 21/10/2026 se descargó el PDF
+// oficial (tech.ebu.ch/docs/tech/tech3276.pdf) y se contrastó palabra por
+// palabra. Lo que había aquí antes estaba sacado de fuentes de segunda
+// mano y tenía TRES errores de fondo, los tres corregidos abajo.
+//
+// ── Lo que dice el documento, §2.3 ──────────────────────────────
+//
+//   "Reverberation time is frequency-dependent. The nominal value, T_m,
+//    is the average of the measured reverberation times in the 1/3-octave
+//    bands from 200 Hz to 4 kHz."
+//
+//   "The nominal reverberation time, T_m, should lie in the range:
+//        0.2 < T_m < 0.4  s"
+//
+//   "To ensure that the acoustic environment remains 'natural', the value
+//    of T_m should increase with the size of the room. The following
+//    formula is given as a guide:
+//        T_m = 0.25 (V/V0)^(1/3)  s      V0 = 100 m³"
+//
+//   "The reverberation time T, measured in 1/3-octave bands over the
+//    frequency range from 63 Hz to 8 kHz, should conform to the tolerance
+//    mask shown in Fig. 1."
+//
+// La Fig. 1 tiene por ordenada la DIFERENCIA (T − T_m), no T. El límite
+// superior vale +0.3 s en 63 Hz, baja hasta +0.05 s en 200 Hz y se queda
+// plano hasta 8 kHz; el inferior es −0.05 s en todo el rango.
+//
+// ── Los tres errores que había aquí ─────────────────────────────
+//
+// 1. **La tolerancia de ±0.05 s sobre T_m no existe.** El documento no
+//    pone una tolerancia alrededor del valor de la fórmula: pone un RANGO
+//    ABSOLUTO, 0.2 a 0.4 s, y llama a la fórmula "a guide". Con ±0.05 s
+//    se estaba exigiendo algo que la norma no pide, y bastante más duro.
+//
+// 2. **La brecha va alrededor de T_m MEDIDO, no del valor de la
+//    fórmula.** Es una brecha de PLANITUD: mide si la sala responde
+//    igual en todas las bandas, no si acierta un objetivo absoluto. Las
+//    dos cosas se comprueban por separado, y así se hace aquí.
+//
+// 3. **Los rangos de volumen eran inventados.** Aquí ponía "20–60 m³
+//    para ITU-R BS.1116 y 100–300 m³ para EBU Tech 3276", y de ahí salía
+//    el famoso hueco entre 60 y 100 m³. **Ese hueco nunca existió.** Lo
+//    que dice el documento (§2 del anexo de dimensiones) es:
+//
+//      · superficie de planta MÍNIMA: 40 m² para una sala de escucha de
+//        referencia, 30 m² para una sala de control de alta calidad;
+//      · "in any case, the volume should not exceed 300 m³".
+//
+//    El 100 que estaba de límite inferior era V0, el volumen de
+//    REFERENCIA de la fórmula, confundido con un límite de aplicación.
+//
+//
+// ── Cómo se llama esto en AQVIS ────────────────────────────────
+//
+// El documento la llama "tolerance mask" y la traducción literal es
+// MÁSCARA de tolerancia. En la interfaz de AQVIS se llama BRECHA de
+// tolerancia, por decisión del autor: "máscara" se lee como algo que
+// tapa, y lo que esto describe es el hueco dentro del que la curva
+// tiene permitido moverse.
+//
+// En la memoria conviene nombrar las dos, una sola vez, para que quien
+// vaya al documento original reconozca de qué se está hablando.
+// ── En qué se aparta AQVIS, que sigue habiendo cosas ────────────
+//
+//   · **Bandas de octava, no de tercio.** La norma mide en 1/3 de octava
+//     de 200 Hz a 4 kHz (T_m) y de 63 Hz a 8 kHz (la brecha). AQVIS
+//     tiene seis bandas de OCTAVA, de 125 Hz a 4 kHz. T_m se toma de 250
+//     Hz a 4 kHz porque la de 125 Hz (88–177 Hz) cae entera por debajo de
+//     los 200 Hz, y la brecha se evalúa en las seis. Es una lectura más
+//     gruesa, no una lectura distinta.
+//
+//   · **El reparto en bueno / límite / malo es convención de AQVIS.** La
+//     norma no gradúa: cumple o no cumple.
+//
+//   · **T_m no es la cifra grande del resumen**, que promedia las seis
+//     bandas desde 125 Hz. Aquélla caracteriza el recinto; ésta lo juzga.
+// ════════════════════════════════════════════════════════════════
+
+const EBU_V0 = 100;               // m³, volumen de referencia de la fórmula
+const EBU_TM_MIN = 0.20;          // s, §2.3: 0.2 < T_m < 0.4
+const EBU_TM_MAX = 0.40;          // s
+const EBU_V_MAX = 300;            // m³, "should not exceed"
+const EBU_AREA_MIN_REF = 40;      // m² de planta, sala de escucha de referencia
+const EBU_AREA_MIN_CTRL = 30;     // m² de planta, sala de control
+
+// Brecha de la Fig. 1, sobre la diferencia (T − T_m).
+const EBU_TOL_INF = -0.05;        // s, plano en todo el rango
+const EBU_TOL_SUP = 0.05;         // s, de 200 Hz hasta 8 kHz
+const EBU_F_PLANA = 200;          // Hz
+const EBU_F_GRAVE = 63;           // Hz
+const EBU_TOL_SUP_GRAVE = 0.30;   // s, en 63 Hz
+
+// Compatibilidad: algún consumidor todavía lee esta constante.
+const EBU_TOLERANCIA = 0.05;
+
+/**
+ * Valor orientativo de T_m para un volumen, en segundos. El documento lo
+ * llama "a guide", no un objetivo: sirve para situar la sala dentro del
+ * rango 0.2–0.4 s, no para exigirle una cifra.
+ */
+function tNominalRT(V) {
+  if (!(V > 0)) return NaN;
+  return 0.25 * Math.pow(V / EBU_V0, 1 / 3);
+}
+
+/**
+ * T_m: media de las bandas de 250 Hz a 4 kHz, que son las de AQVIS que
+ * caen dentro del rango de 200 Hz a 4 kHz de la norma.
+ */
+function tmCriterio(bandas) {
+  const dentro = (bandas || []).slice(1).filter((v) => Number.isFinite(v));
+  if (!dentro.length) return NaN;
+  return dentro.reduce((a, b) => a + b, 0) / dentro.length;
+}
+
+/**
+ * Si la sala cae dentro del ámbito de aplicación de EBU Tech 3276.
+ * Devuelve los motivos por los que NO, para poder decírselos al usuario.
+ */
+function ambitoEBU(V, L, W) {
+  const motivos = [];
+  if (Number.isFinite(V) && V > EBU_V_MAX) {
+    motivos.push(`el volumen pasa de ${EBU_V_MAX} m³`);
+  }
+  if (Number.isFinite(L) && Number.isFinite(W) && L * W < EBU_AREA_MIN_CTRL) {
+    motivos.push(`la planta no llega a ${EBU_AREA_MIN_CTRL} m²`);
+  }
+  return { dentro: motivos.length === 0, motivos };
+}
+
+/** Tolerancia superior de la brecha en una frecuencia, en segundos. */
+function toleranciaSuperior(f) {
+  if (!(f > 0)) return NaN;
+  if (f >= EBU_F_PLANA) return EBU_TOL_SUP;
+  if (f <= EBU_F_GRAVE) return EBU_TOL_SUP_GRAVE;
+  const t = Math.log(f / EBU_F_GRAVE) / Math.log(EBU_F_PLANA / EBU_F_GRAVE);
+  return EBU_TOL_SUP_GRAVE + (EBU_TOL_SUP - EBU_TOL_SUP_GRAVE) * t;
+}
+
+/**
+ * Límites de la brecha para cada banda de AQVIS, en segundos ABSOLUTOS.
+ * Van alrededor de T_m, que es como los dibuja la Fig. 1.
+ */
+function brechaRT(tm) {
+  if (!Number.isFinite(tm)) return BANDS.map((f) => ({ f, min: NaN, max: NaN }));
+  return BANDS.map((f) => ({
+    f,
+    min: tm + EBU_TOL_INF,
+    max: tm + toleranciaSuperior(f),
+  }));
+}
+
+/** Veredicto del rango absoluto de T_m: 0.2 < T_m < 0.4 s. */
+function claseRT(tm) {
+  if (!Number.isFinite(tm)) return 'warn';
+  if (tm >= EBU_TM_MIN && tm <= EBU_TM_MAX) return 'good';
+  // La banda "límite" es convención de AQVIS: al doble de ancha que el
+  // rango de la norma por cada lado. Sin ella no habría más que aprobado
+  // y suspenso, y casi ninguna sala real caería en 0.2–0.4 s.
+  if (tm >= EBU_TM_MIN / 2 && tm <= EBU_TM_MAX * 1.5) return 'warn';
   return 'bad';
 }
 
-function interpretRT(rtValor) {
-  const rt = rtValor.toFixed(1);
-  if (rtValor < 0.3)  return `RT60 de <strong>${rt} s</strong> — sala muy absorbente. Puede sonar apagada.`;
-  if (rtValor <= 0.7) return `RT60 de <strong>${rt} s</strong> — rango adecuado para uso general.`;
-  if (rtValor <= 1.2) return `RT60 de <strong>${rt} s</strong> — algo elevado. Considera tratamiento absorbente.`;
-  if (rtValor <= 2.0) return `RT60 de <strong>${rt} s</strong> — sala reverberante. Adecuado para música.`;
-  return `RT60 de <strong>${rt} s</strong> — muy reverberante. Se recomienda tratamiento acústico.`;
+function mayus(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
+
+/** "125 Hz", "125 Hz y 250 Hz", "125 Hz, 250 Hz y 4 kHz". */
+function unidadBanda(etiqueta) {
+  return etiqueta.endsWith('k') ? `${etiqueta.slice(0, -1)} kHz` : `${etiqueta} Hz`;
+}
+
+function listar(etiquetas) {
+  const con = etiquetas.map(unidadBanda);
+  if (con.length <= 1) return con[0] || '';
+  return `${con.slice(0, -1).join(', ')} y ${con[con.length - 1]}`;
+}
+
+/**
+ * Lectura completa del criterio de EBU: el rango de T_m y la brecha de
+ * planitud, las dos de la misma cuenta, para que la insignia y la nota no
+ * puedan contradecirse.
+ *
+ * El orden importa y es el del documento: primero T_m tiene que caer en
+ * 0.2–0.4 s, y sólo entonces tiene sentido mirar si la curva es plana.
+ * Una sala de 1.2 s perfectamente plana cumple la brecha y no sirve.
+ */
+function lecturaEBU(bandas, V, L, W) {
+  const tm = tmCriterio(bandas);
+  const guia = tNominalRT(V);
+  const brecha = brechaRT(tm);
+  const ambito = ambitoEBU(V, L, W);
+
+  const estado = brecha.map((m, i) => {
+    const rt = (bandas || [])[i];
+    if (!Number.isFinite(rt) || !Number.isFinite(m.min)) return 'sin-dato';
+    if (rt < m.min) return 'baja';
+    if (rt > m.max) return 'alta';
+    return 'dentro';
+  });
+
+  const total = brecha.length;
+  const dentro = estado.filter((e) => e === 'dentro').length;
+  const claseBrecha = dentro === total ? 'good' : dentro >= total - 2 ? 'warn' : 'bad';
+  const claseTm = claseRT(tm);
+
+  const PESO = { good: 0, warn: 1, bad: 2 };
+  const clase = PESO[claseTm] >= PESO[claseBrecha] ? claseTm : claseBrecha;
+
+  const etiqueta = claseTm === 'good'
+    ? `${dentro}/${total} bandas en brecha`
+    : `RT60 fuera de ${EBU_TM_MIN.toFixed(1)}–${EBU_TM_MAX.toFixed(1)} s`;
+
+  // ── La nota ──────────────────────────────────────────────────
+  const altas = BAND_LABELS.filter((_, i) => estado[i] === 'alta');
+  const bajas = BAND_LABELS.filter((_, i) => estado[i] === 'baja');
+
+  let nota;
+  if (claseTm !== 'good') {
+    const donde = tm > EBU_TM_MAX ? 'por encima' : 'por debajo';
+    nota = `T<sub>m</sub> de ${tm.toFixed(2)} s, ${donde} del rango de ` +
+           `${EBU_TM_MIN.toFixed(1)} a ${EBU_TM_MAX.toFixed(1)} s de la norma ` +
+           `(la guía para ${V.toFixed(0)} m³ son ${guia.toFixed(2)} s).`;
+    nota += tm > EBU_TM_MAX
+      ? ' Considera tratamiento absorbente.'
+      : ' La sala puede sonar apagada.';
+  } else if (dentro === total) {
+    nota = `T<sub>m</sub> de ${tm.toFixed(2)} s, dentro del rango de la norma, y las ` +
+           `seis bandas caen dentro de la brecha de tolerancia.`;
+  } else {
+    const trozos = [];
+    if (altas.length) trozos.push(`${listar(altas)} por encima`);
+    if (bajas.length) trozos.push(`${listar(bajas)} por debajo`);
+    nota = `T<sub>m</sub> de ${tm.toFixed(2)} s está en rango, pero ${trozos.join('; ')} ` +
+           `de la brecha de tolerancia alrededor de T<sub>m</sub>.`;
+  }
+
+  if (!ambito.dentro) {
+    nota += ` ${mayus(ambito.motivos.join(' y '))}: criterio orientativo.`;
+  }
+
+  return {
+    clase, etiqueta, nota, estado, dentro, total, brecha,
+    tm, guia, claseTm, claseBrecha, ambito,
+  };
+}
+
+/**
+ * Proporciones de sala de EBU Tech 3276, anexo de dimensiones:
+ *
+ *     1.1 (w/h)  ≤  l/h  ≤  4.5 (w/h) − 4
+ *     l < 3h ,  w < 3h
+ *
+ * con l = la mayor dimensión de la planta, w = la menor, h = la altura.
+ * Y además: "ratios of l, w and h which are within ±5% of integer values
+ * should also be avoided".
+ *
+ * ⚠️ IMPLEMENTADO Y PROBADO, PERO TODAVÍA SIN PANTALLA. Es un criterio de
+ * proporciones distinto del de Bolt y sale de la MISMA norma de la que
+ * sale el criterio de RT60, así que es el candidato natural para
+ * acompañar a Bolt en su pestaña.
+ */
+function proporcionesEBU(L, W, H) {
+  if (!(L > 0 && W > 0 && H > 0)) return null;
+  const l = Math.max(L, W), w = Math.min(L, W), h = H;
+  const rl = l / h, rw = w / h;
+
+  const banda = rl >= 1.1 * rw && rl <= 4.5 * rw - 4;
+  const topes = l < 3 * h && w < 3 * h;
+
+  // Los tres cocientes entre dimensiones, que no deben acercarse a un entero.
+  const cocientes = [
+    { nombre: 'largo/alto', v: l / h },
+    { nombre: 'ancho/alto', v: w / h },
+    { nombre: 'largo/ancho', v: l / w },
+  ];
+  const enteros = cocientes.filter((c) => {
+    const n = Math.round(c.v);
+    return n >= 1 && Math.abs(c.v - n) <= 0.05 * n;
+  });
+
+  const motivos = [];
+  if (!banda) motivos.push('las proporciones caen fuera de la banda 1.1·(w/h) ≤ l/h ≤ 4.5·(w/h) − 4');
+  if (!topes) motivos.push('el largo o el ancho pasan de tres veces la altura');
+
+  const clase = motivos.length ? 'bad' : enteros.length ? 'warn' : 'good';
+  return { clase, cumple: motivos.length === 0, motivos, enteros, rl, rw };
+}
+
+// ── Compatibilidad con las llamadas antiguas ────────────────────
+// lecturaRT seguía siendo la fuente de la insignia hasta que la brecha
+// la sustituyó. Se mantiene porque interpretRT la usa, pero ya no decide
+// nada: el veredicto sale de lecturaEBU.
+function lecturaRT(tm, V) {
+  const clase = claseRT(tm);
+  const guia = tNominalRT(V);
+  const nota = clase === 'good'
+    ? `T_m de ${tm.toFixed(2)} s, dentro del rango de ${EBU_TM_MIN.toFixed(1)} a ${EBU_TM_MAX.toFixed(1)} s.`
+    : `T_m de ${tm.toFixed(2)} s, fuera del rango de ${EBU_TM_MIN.toFixed(1)} a ${EBU_TM_MAX.toFixed(1)} s (la fórmula da ${guia.toFixed(2)} s para ${V.toFixed(0)} m³).`;
+  const etiqueta = clase === 'good' ? 'RT60 en rango' : (tm > EBU_TM_MAX ? 'RT60 alto' : 'RT60 bajo');
+  return { clase, etiqueta, nota, nominal: guia, delta: tm - guia };
+}
+
+function classifyRT(tm) {
+  return claseRT(tm);
+}
+
+function interpretRT(tm, V) {
+  return `RT60 de <strong>${tm.toFixed(1)} s</strong> — ${lecturaRT(tm, V).nota}`;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -306,6 +639,8 @@ function calculate(input) {
   //   el tiempo de reverberación de medias frecuencias.
   const media = (bandas) => bandas.reduce((a, b) => a + (b || 0), 0) / bandas.length;
   const RT_avg = media(RT_sabine);
+  // T_m del criterio de EBU/ITU: 250 Hz a 4 kHz, no las seis bandas.
+  const RT_ebu = tmCriterio(RT_sabine);
   const RT_mid = (RT_sabine[2] + RT_sabine[3]) / 2;
 
   // ── RT60 Fitzroy — solo si hasTreatment ─────────────────────
@@ -397,9 +732,9 @@ function calculate(input) {
     areasBySurface,
     alpha_avg, A_bands, alpha_avg_bands,
     RT_sabine, RT_eyring, RT_fitzroy, RT_millington,
-    RT_avg, RT_mid, hasTreatment,
+    RT_avg, RT_ebu, RT_mid, hasTreatment,
     R, dc, schroeder,
-    LH, WH, inBolt, boltMargin,
+    LH, WH, inBolt, boltMargin, boltClase: claseBolt(inBolt, boltMargin),
     boltX, boltY, nearestBoltPoint,
     boltSmallestDim: dimSmall.key, boltMidDim: dimMid.key, boltLargestDim: dimLarge.key,
     boltSmallestLabel: dimSmall.label, boltMidLabel: dimMid.label, boltLargestLabel: dimLarge.label,
@@ -475,8 +810,12 @@ function computeModes(L, W, H, c, schroeder) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     calculate, speedOfSound, combineAlphaByArea, classifyRT, interpretRT,
+    lecturaRT, claseRT, tNominalRT, tmCriterio,
+    brechaRT, lecturaEBU, toleranciaSuperior, ambitoEBU, proporcionesEBU,
+    EBU_TM_MIN, EBU_TM_MAX, EBU_V_MAX, EBU_AREA_MIN_REF, EBU_AREA_MIN_CTRL,
     getConstructionForSurface, getTreatmentForSurface, pointInPolygon, computeModes,
     CONSTRUCTION_MATERIALS, TREATMENT_MATERIALS, BANDS, BAND_LABELS,
     AIR_ABS_COEFF, AQVIS_SCHEMA_VERSION,
+    BOLT_POLYGON, BOLT_REFERENCE_RATIOS, claseBolt, BOLT_TOLERANCIA,
   };
 }

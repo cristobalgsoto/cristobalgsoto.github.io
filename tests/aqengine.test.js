@@ -20,9 +20,13 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
-  calculate, speedOfSound, combineAlphaByArea, classifyRT,
+  calculate, speedOfSound, combineAlphaByArea, classifyRT, tNominalRT,
+  lecturaRT, claseRT, tmCriterio,
   getConstructionForSurface, getTreatmentForSurface,
   pointInPolygon, BANDS, AIR_ABS_COEFF,
+  brechaRT, lecturaEBU, toleranciaSuperior, ambitoEBU, proporcionesEBU,
+  EBU_TM_MIN, EBU_TM_MAX, EBU_V_MAX, EBU_AREA_MIN_CTRL,
+  BOLT_POLYGON, BOLT_REFERENCE_RATIOS, claseBolt, BOLT_TOLERANCIA,
 } = require('../js/aqengine.js');
 
 // ─── Helper: sala rectangular con el mismo α en las 6 superficies ──────
@@ -175,14 +179,235 @@ test('getConstructionForSurface: "paredN" se normaliza al tipo genérico "pared"
 // Utilidades
 // ════════════════════════════════════════════════════════════════
 
-test('classifyRT: respeta los umbrales documentados (good/warn/bad)', () => {
-  assert.equal(classifyRT(0.6), 'good');
-  assert.equal(classifyRT(0.35), 'warn');
-  assert.equal(classifyRT(2.0), 'bad');
+test('tNominalRT: 0.25 s en el volumen de referencia y escala con la raiz cubica', () => {
+  // T = 0.25 (V/V0)^(1/3), V0 = 100 m3 — EBU Tech 3276 / ITU-R BS.1116
+  assert.ok(Math.abs(tNominalRT(100) - 0.25) < 1e-9);
+  // Ocho veces el volumen, el doble de tiempo
+  assert.ok(Math.abs(tNominalRT(800) - 0.5) < 1e-9);
+});
+
+test('tmCriterio: promedia de 250 Hz a 4 kHz, dejando fuera la banda de 125', () => {
+  // La de 125 Hz (88-177 Hz) cae entera por debajo de los 200 Hz del
+  // rango de la norma, asi que un valor disparatado ahi no debe influir.
+  assert.ok(Math.abs(tmCriterio([99, 1, 1, 1, 1, 1]) - 1) < 1e-9);
+});
+
+// Estos tres tests fijaban el criterio EQUIVOCADO —una tolerancia de
+// +-0.05 s alrededor del valor de la formula, y unos rangos de volumen
+// inventados— y pasaban en verde. Verificado el documento el 21/10/2026,
+// se reescriben contra lo que dice de verdad. Queda como recordatorio de
+// que un test verde solo garantiza que el codigo hace lo que alguien
+// escribio, no que lo escrito sea cierto.
+
+test('claseRT: el rango de T_m es absoluto, no una tolerancia sobre la formula', () => {
+  assert.equal(classifyRT(0.25), 'good');
+  assert.equal(classifyRT(0.29), 'good');
+  assert.equal(classifyRT(0.33), 'good');   // antes daba 'warn'; la norma lo admite
+  assert.equal(classifyRT(0.80), 'bad');
+});
+
+test('lecturaRT: la insignia y la nota no pueden contradecirse', () => {
+  // Salen las dos de la misma llamada, que es justo el punto.
+  const l = lecturaRT(0.26, 100);
+  assert.equal(l.clase, 'good');
+  assert.ok(l.etiqueta.includes('rango'), l.etiqueta);
+  assert.ok(l.nota.includes('rango'), l.nota);
 });
 
 test('pointInPolygon: distingue un punto dentro de uno fuera de un polígono simple', () => {
   const square = [[0, 0], [2, 0], [2, 2], [0, 2]];
   assert.equal(pointInPolygon(1, 1, square), true);
   assert.equal(pointInPolygon(5, 5, square), false);
+});
+
+// ── Región de Bolt ────────────────────────────────────────────────
+//
+// El polígono anterior se había trazado a ojo y su punta inferior quedaba
+// en (1.40, 1.50) en vez de (1.23, 1.43). Faltaba un tercio del área, y
+// con ella caían fuera dos proporciones óptimas PUBLICADAS. Es el fallo
+// que este test impide repetir.
+
+test('Bolt: las proporciones de Sepmeyer B y Boner caen dentro de la región', () => {
+  const dentro = (x, y) => pointInPolygon(x, y, BOLT_POLYGON);
+  assert.equal(dentro(1.28, 1.54), true, 'Sepmeyer B (1:1.28:1.54)');
+  assert.equal(dentro(1.26, 1.59), true, 'Boner (1:cbrt2:cbrt4)');
+  assert.equal(dentro(1.40, 1.90), true, 'Louden A (1:1.40:1.90)');
+  assert.equal(dentro(1.50, 2.10), true, 'Louden C (1:1.50:2.10)');
+});
+
+test('Bolt: la punta inferior llega a la zona de proporciones pequeñas', () => {
+  const minX = Math.min(...BOLT_POLYGON.map(p => p[0]));
+  const minY = Math.min(...BOLT_POLYGON.map(p => p[1]));
+  // Con el trazado viejo estos minimos eran 1.28 y 1.45.
+  assert.ok(minX < 1.20, `la punta no baja de x=1.20 (es ${minX})`);
+  assert.ok(minY < 1.45, `la punta no baja de y=1.45 (es ${minY})`);
+});
+
+test('Bolt: los ocho puntos de referencia del diagrama original estan todos', () => {
+  assert.equal(BOLT_REFERENCE_RATIOS.length, 8);
+  const nombres = BOLT_REFERENCE_RATIOS.map(r => r.name).join(' ');
+  for (const quien of ['Sepmeyer A', 'Sepmeyer B', 'Sepmeyer C',
+                       'Louden A', 'Louden B', 'Louden C',
+                       'Volkmann', 'Boner']) {
+    assert.ok(nombres.includes(quien), `falta ${quien}`);
+  }
+});
+
+test('Bolt: la banda de tolerancia evita el suspenso por un borde dibujado a mano', () => {
+  assert.equal(claseBolt(true, 0), 'good');
+  // Justo fuera, dentro de la precision con que se lee el grafico original.
+  assert.equal(claseBolt(false, BOLT_TOLERANCIA - 0.01), 'warn');
+  assert.equal(claseBolt(false, BOLT_TOLERANCIA + 0.01), 'bad');
+});
+
+
+// ── EBU Tech 3276, 2ª edición, verificada contra el PDF ───────────
+//
+// El 21/10/2026 se contrastó el documento oficial y resultó que lo que
+// había implementado tenía tres errores: la tolerancia de ±0.05 s sobre
+// T_m no existe (la norma pide 0.2 < T_m < 0.4 s y llama "a guide" a la
+// fórmula), la brecha va alrededor de T_m MEDIDO y no del valor de la
+// fórmula, y los rangos de volumen eran inventados. Estos tests fijan lo
+// que el documento dice de verdad.
+
+test('EBU: el rango de T_m es absoluto, 0.2 a 0.4 s, no una tolerancia', () => {
+  assert.equal(EBU_TM_MIN, 0.20);
+  assert.equal(EBU_TM_MAX, 0.40);
+  assert.equal(claseRT(0.20), 'good');
+  assert.equal(claseRT(0.30), 'good');
+  assert.equal(claseRT(0.40), 'good');
+  assert.equal(claseRT(0.45), 'warn');
+  assert.equal(claseRT(1.00), 'bad');
+  // Lo que fallaba antes: con la tolerancia inventada de ±0.05 s sobre
+  // 0.25, una sala de 0.35 s en 100 m³ suspendía. La norma la aprueba.
+  assert.equal(claseRT(0.35), 'good');
+});
+
+test('EBU: la fórmula es orientativa y no define el veredicto', () => {
+  assert.ok(Math.abs(tNominalRT(100) - 0.25) < 1e-9);
+  assert.ok(Math.abs(tNominalRT(800) - 0.50) < 1e-9);   // 2x el lado -> 8x V
+  // Una sala de 800 m³ tendría una "guía" de 0.50 s, FUERA del rango que
+  // la propia norma exige. No es contradicción: la norma acota el volumen
+  // a 300 m³, y ahí la guía vale 0.36 s.
+  assert.ok(tNominalRT(EBU_V_MAX) < EBU_TM_MAX, 'la guía se sale del rango dentro del ámbito');
+});
+
+test('EBU: la tolerancia superior es plana de 200 Hz hacia arriba', () => {
+  for (const f of [200, 250, 500, 1000, 2000, 4000, 8000]) {
+    assert.equal(toleranciaSuperior(f), 0.05, `${f} Hz`);
+  }
+});
+
+test('EBU: la tolerancia superior se ensancha hacia graves, en log f', () => {
+  assert.equal(toleranciaSuperior(63), 0.30);
+  // t = ln(125/63)/ln(200/63) = 0.5934 -> 0.30 + (0.05-0.30)*0.5934
+  assert.ok(Math.abs(toleranciaSuperior(125) - 0.1516) < 0.001,
+    `125 Hz da ${toleranciaSuperior(125)}`);
+  let ant = Infinity;
+  for (let f = 50; f <= 500; f += 5) {
+    const t = toleranciaSuperior(f);
+    assert.ok(t <= ant + 1e-12, `sube en ${f} Hz`);
+    ant = t;
+  }
+});
+
+test('EBU: la brecha va alrededor de T_m medido, no del valor de la fórmula', () => {
+  // Sala plana en 0.30 s. T_m = 0.30; la fórmula para 100 m³ daría 0.25.
+  const bandas = [0.30, 0.30, 0.30, 0.30, 0.30, 0.30];
+  const m = brechaRT(tmCriterio(bandas));
+  for (const b of m) assert.ok(Math.abs(b.min - 0.25) < 1e-9, 'el suelo no sigue a T_m');
+  assert.ok(m[0].max > m[1].max, '125 Hz no tiene más margen que 250 Hz');
+  for (let i = 1; i < m.length; i++) {
+    assert.ok(Math.abs(m[i].max - 0.35) < 1e-9, `${BANDS[i]} Hz`);
+  }
+  const l = lecturaEBU(bandas, 100, 6, 5);
+  assert.equal(l.dentro, 6);
+  assert.equal(l.clase, 'good');
+  assert.equal(l.etiqueta, '6/6 bandas en brecha');
+});
+
+test('EBU: la brecha mide PLANITUD; el rango de T_m mide nivel', () => {
+  // Sala plana pero muy reverberante: pasa la brecha y suspende por T_m.
+  const l = lecturaEBU([1.2, 1.2, 1.2, 1.2, 1.2, 1.2], 100, 6, 5);
+  assert.equal(l.dentro, 6, 'una curva plana cumple la brecha, dice la norma');
+  assert.equal(l.claseBrecha, 'good');
+  assert.equal(l.claseTm, 'bad');
+  assert.equal(l.clase, 'bad', 'el veredicto es el peor de los dos');
+  assert.ok(l.etiqueta.includes('fuera de'), l.etiqueta);
+  assert.ok(l.nota.includes('tratamiento absorbente'), l.nota);
+});
+
+test('EBU: con T_m en rango, el veredicto cuenta bandas y las nombra', () => {
+  // T_m (250 Hz a 4 kHz) = 0.30; 125 Hz se dispara a 0.60.
+  const l = lecturaEBU([0.60, 0.30, 0.30, 0.30, 0.30, 0.30], 100, 6, 5);
+  assert.equal(l.claseTm, 'good');
+  assert.equal(l.estado[0], 'alta', '0.60 pasa del +0.15 que admite 125 Hz');
+  assert.equal(l.dentro, 5);
+  assert.equal(l.etiqueta, '5/6 bandas en brecha');
+  assert.ok(l.nota.includes('125 Hz'), l.nota);
+});
+
+test('EBU: 125 Hz admite +0.15 s sobre T_m y 250 Hz sólo +0.05', () => {
+  const base = [0.30, 0.30, 0.30, 0.30, 0.30, 0.30];
+  const grave = lecturaEBU([0.44, ...base.slice(1)], 100, 6, 5);
+  assert.equal(grave.estado[0], 'dentro', '125 Hz a +0.14 deberia entrar');
+  const pasado = lecturaEBU([0.46, ...base.slice(1)], 100, 6, 5);
+  assert.equal(pasado.estado[0], 'alta', '125 Hz a +0.16 deberia salirse');
+});
+
+test('EBU: el ámbito es planta mínima y volumen máximo, sin hueco ninguno', () => {
+  // El "hueco entre 60 y 100 m³" venía de inventarse los rangos: el 100
+  // era V0, el volumen de REFERENCIA de la fórmula.
+  assert.equal(ambitoEBU(75.6, 6, 4.5).dentro, false, 'planta de 27 m² < 30');
+  assert.equal(ambitoEBU(200, 10, 8).dentro, true);
+  assert.equal(ambitoEBU(400, 12, 10).dentro, false, 'pasa de 300 m³');
+  assert.equal(EBU_V_MAX, 300);
+  assert.equal(EBU_AREA_MIN_CTRL, 30);
+  // Ningun volumen entre 60 y 100 queda fuera por serlo.
+  for (let V = 60; V <= 100; V += 5) {
+    assert.equal(ambitoEBU(V, 8, 5).dentro, true, `${V} m³ con planta de 40 m²`);
+  }
+});
+
+test('EBU: la insignia y la nota salen de la misma cuenta', () => {
+  for (const bandas of [[0.30, 0.30, 0.30, 0.30, 0.30, 0.30],
+                        [1.2, 1.2, 1.2, 1.2, 1.2, 1.2],
+                        [0.60, 0.30, 0.30, 0.30, 0.30, 0.22]]) {
+    const l = lecturaEBU(bandas, 150, 8, 6);
+    if (l.claseTm === 'good') {
+      assert.equal(l.etiqueta, `${l.dentro}/6 bandas en brecha`);
+    } else {
+      assert.ok(l.etiqueta.includes('fuera de'), l.etiqueta);
+      assert.ok(l.nota.includes('rango'), l.nota);
+    }
+  }
+});
+
+// ── Proporciones de EBU Tech 3276 (sin pantalla todavía) ─────────
+
+test('EBU: las proporciones de la norma son 1.1(w/h) <= l/h <= 4.5(w/h) - 4', () => {
+  // Con w/h = 1.6 la banda va de 1.76 a 3.2, pero el tope l < 3h la
+  // recorta en 3: de los dos limites manda el que caiga antes.
+  const h = 2.5, w = 4.0;
+  assert.equal(proporcionesEBU(h * 1.8, w, h).cumple, true, 'dentro, cerca del borde bajo');
+  assert.equal(proporcionesEBU(h * 2.9, w, h).cumple, true, 'dentro, cerca del tope');
+  assert.equal(proporcionesEBU(h * 1.5, w, h).cumple, false, 'por debajo del borde bajo');
+  // Con w/h = 1.2 la banda es estrecha: de 1.32 a 1.4.
+  const w2 = h * 1.2;
+  assert.equal(proporcionesEBU(h * 1.35, w2, h).cumple, true, 'dentro de la banda estrecha');
+  assert.equal(proporcionesEBU(h * 1.60, w2, h).cumple, false, 'pasa el borde alto');
+});
+
+test('EBU: ni el largo ni el ancho pueden pasar de tres veces la altura', () => {
+  const r = proporcionesEBU(9.0, 8.4, 2.8);   // l = 3.21h
+  assert.equal(r.cumple, false);
+  assert.ok(r.motivos.join(' ').includes('tres veces'), r.motivos.join(' '));
+});
+
+test('EBU: los cocientes cerca de un entero se avisan, no se suspenden', () => {
+  // 5.0 / 2.5 = 2.00 exacto -> largo/alto entero.
+  const r = proporcionesEBU(5.0, 4.0, 2.5);
+  assert.equal(r.cumple, true, 'la banda se cumple');
+  assert.equal(r.clase, 'warn');
+  assert.ok(r.enteros.some((e) => e.nombre === 'largo/alto'), JSON.stringify(r.enteros));
 });
