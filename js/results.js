@@ -1,8 +1,12 @@
 const DECAY_METHODS = {
-  sabine: { key: 'RT_sabine', color: '#FF8C00', label: 'Sabine', always: true },
-  eyring: { key: 'RT_eyring', color: '#3A7BFF', label: 'Eyring', always: true },
-  fitzroy: { key: 'RT_fitzroy', color: '#00CC66', label: 'Fitzroy', always: false },
-  millington: { key: 'RT_millington', color: '#FF4444', label: 'Millington', always: false },
+  sabine: { key: 'RT_sabine', color: '#FF8C00', label: 'Sabine', always: true,
+    tip: 'T = 0.161·V/A. Supone el campo difuso y la absorción bien repartida; se queda corto cuando el α medio pasa de ~0.2.' },
+  eyring: { key: 'RT_eyring', color: '#3A7BFF', label: 'Eyring', always: true,
+    tip: 'T = 0.161·V/(−S·ln(1−α)). Corrige a Sabine en salas absorbentes: con α pequeño las dos coinciden.' },
+  fitzroy: { key: 'RT_fitzroy', color: '#00CC66', label: 'Fitzroy', always: false,
+    tip: 'Promedia por pares de superficies paralelas. Para salas donde la absorción está muy desigual entre los tres ejes.' },
+  millington: { key: 'RT_millington', color: '#FF4444', label: 'Millington', always: false,
+    tip: 'Aplica −ln(1−α) superficie a superficie. Castiga mucho las superficies de α alto y da el RT60 más corto.' },
 };
 
 let decayMethod = 'sabine';
@@ -22,8 +26,13 @@ function renderDecayToggle(res) {
     // EBU/ITU para el volumen de la sala. Antes miraba sólo 1 kHz, y después
     // la media de las seis bandas, que no es la del criterio.
     const tm = tmCriterio(values);
-    const status = Number.isFinite(tm) ? `<span class="decay-status-dot rt-${claseRT(tm, res.V)}"></span>` : '';
-    return `<button type="button" class="mtog-btn${key === decayMethod ? ' active' : ''}" onclick="setDecayMethod('${key}')">${status}${method.label}</button>`;
+    const status = Number.isFinite(tm) ? `<span class="decay-status-dot rt-${claseRT(tm)}"></span>` : '';
+    // El tooltip dice lo que el nombre no puede: qué supone cada fórmula.
+    // Y, si hay cifra, con qué T_m se ha encendido el punto de estado.
+    const tip = Number.isFinite(tm)
+      ? `${method.tip} · T_m = ${tm.toFixed(2)} s`
+      : method.tip;
+    return `<button type="button" class="mtog-btn${key === decayMethod ? ' active' : ''}" onclick="setDecayMethod('${key}')" data-tooltip="${tip}">${status}${method.label}</button>`;
   }).join('');
 }
 
@@ -100,8 +109,8 @@ function renderRT60Chart(res, method) {
     const fuera = est === 'alta' || est === 'baja';
     const m = lm ? lm.brecha[index] : null;
     const tip = m
-      ? `${BAND_LABELS[index]} Hz: ${value.toFixed(2)} s — brecha ${m.min.toFixed(2)} a ${m.max.toFixed(2)} s`
-      : `${BAND_LABELS[index]} Hz: ${value.toFixed(1)} s`;
+      ? `${unidadBanda(BAND_LABELS[index])}: ${value.toFixed(2)} s — brecha ${m.min.toFixed(2)} a ${m.max.toFixed(2)} s`
+      : `${unidadBanda(BAND_LABELS[index])}: ${value.toFixed(1)} s`;
     const anillo = fuera
       ? `<circle cx="${x(index).toFixed(1)}" cy="${y(value).toFixed(1)}" r="7.5" fill="none" stroke="${FUERA}" stroke-width="1.5"/>`
       : '';

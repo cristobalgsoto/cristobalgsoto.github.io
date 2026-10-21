@@ -812,6 +812,7 @@ if (typeof module !== 'undefined' && module.exports) {
     calculate, speedOfSound, combineAlphaByArea, classifyRT, interpretRT,
     lecturaRT, claseRT, tNominalRT, tmCriterio,
     brechaRT, lecturaEBU, toleranciaSuperior, ambitoEBU, proporcionesEBU,
+    unidadBanda,
     EBU_TM_MIN, EBU_TM_MAX, EBU_V_MAX, EBU_AREA_MIN_REF, EBU_AREA_MIN_CTRL,
     getConstructionForSurface, getTreatmentForSurface, pointInPolygon, computeModes,
     CONSTRUCTION_MATERIALS, TREATMENT_MATERIALS, BANDS, BAND_LABELS,

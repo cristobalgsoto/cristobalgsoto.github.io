@@ -58,7 +58,7 @@
       <div class="wc-desc">Define las dimensiones del recinto rectangular a simular.</div>
 
       <div class="field-group">
-        <label class="field-label">Dimensiones</label>
+        <label class="field-label" data-tooltip="Medidas interiores, de superficie a superficie. De aquí salen el volumen, el área total y las proporciones de Bolt.">Dimensiones</label>
         <div class="field-row-3">
           <div>
             <div class="field-wrap">
@@ -105,7 +105,7 @@
       <div class="wc-desc">La temperatura afecta directamente la velocidad de propagación del sonido en el aire.</div>
 
       <div class="field-group">
-        <label class="field-label">Temperatura del aire</label>
+        <label class="field-label" data-tooltip="c = 331.3 + 0.606·T. Cambia la velocidad del sonido y, con ella, las frecuencias de los modos y la absorción del aire en agudos.">Temperatura del aire</label>
         <div class="slider-row">
           <!-- ✅ Rango: 10–30°C -->
           <input type="range" id="w-temp" min="10" max="30" value="20"
@@ -221,11 +221,11 @@
       <div class="wc-desc">¿El recinto cuenta con materiales de tratamiento acústico adicionales a la construcción base?</div>
 
       <div class="yn-grid">
-        <div class="yn-card" id="yn-yes" onclick="selectTreatment(true)">
+        <div class="yn-card" id="yn-yes" onclick="selectTreatment(true)" data-tooltip="Se añade un paso para indicar qué material y cuántos m² cubre en cada superficie. El tratamiento sólo cubre parte: por eso se pide el área.">
           <div class="yn-label">Sí</div>
           <div class="yn-desc">paneles, espuma, alfombra, cortinas...</div>
         </div>
-        <div class="yn-card" id="yn-no" onclick="selectTreatment(false)">
+        <div class="yn-card" id="yn-no" onclick="selectTreatment(false)" data-tooltip="La absorción sale sólo de los materiales de construcción de las seis superficies.">
           <div class="yn-label">No</div>
           <div class="yn-desc">solo materiales de construcción</div>
         </div>

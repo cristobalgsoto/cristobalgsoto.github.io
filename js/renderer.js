@@ -1029,8 +1029,11 @@ function renderSpace(res, inp) {
       const trat = sf.treatment
         ? `<span class="geo-surf-trat">+ ${sf.treatment.name} · ${sf.treatment.area.toFixed(1)} m²</span>`
         : '';
+      const alfa = Array.isArray(sf.alpha)
+        ? `α por banda: ${sf.alpha.map(a => a.toFixed(2)).join(' · ')} (125 Hz → 4 kHz)`
+        : '';
       return `
-      <div class="geo-surf-item">
+      <div class="geo-surf-item" data-tooltip="${alfa}">
         <span class="geo-surf-top">
           <span class="geo-surf-lbl">${sf.name}</span>
           <span class="geo-surf-val">${sf.area.toFixed(1)} m²</span>

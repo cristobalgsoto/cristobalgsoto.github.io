@@ -181,11 +181,11 @@
       <!-- ══ TABS ══ -->
       <div class="tabs-panel">
         <div class="tab-nav">
-          <button class="tab-btn active" onclick="showTab('espacio',this)">Espacio</button>
-          <button class="tab-btn" onclick="showTab('vars',this)">Parámetros</button>
-          <button class="tab-btn" onclick="showTab('decay',this)">Decay</button>
-          <button class="tab-btn" onclick="showTab('modos',this)">Modos</button>
-          <button class="tab-btn" onclick="showTab('bolt',this)">Criterio de Bolt</button>
+          <button class="tab-btn active" onclick="showTab('espacio',this)" data-tooltip="Geometría del recinto: volumen, superficies y el material de cada una.">Espacio</button>
+          <button class="tab-btn" onclick="showTab('vars',this)" data-tooltip="Las cifras intermedias de las que sale el RT60.">Parámetros</button>
+          <button class="tab-btn" onclick="showTab('decay',this)" data-tooltip="Curva de RT60 banda a banda y la brecha de tolerancia de EBU Tech 3276.">Decay</button>
+          <button class="tab-btn" onclick="showTab('modos',this)" data-tooltip="Modos propios del recinto y cómo se reparten por banda.">Modos</button>
+          <button class="tab-btn" onclick="showTab('bolt',this)" data-tooltip="Las proporciones del recinto contra la región de Bolt (1946).">Criterio de Bolt</button>
         </div>
 
         <div class="tab-content">
@@ -193,7 +193,7 @@
           <!-- Espacio -->
           <div id="tab-espacio" class="tab-pane active">
             <div class="param-grid" style="margin-bottom:14px">
-              <div class="param-card">
+              <div class="param-card" data-tooltip="4V/S: el camino medio del sonido entre dos reflexiones. Cuanto más corto, más veces rebota por segundo y más pesa la absorción.">
                 <div class="param-lbl">Free mean path</div>
                 <div class="param-val" id="g-fmp">—</div>
                 <div class="param-unit">metros</div>
@@ -207,31 +207,31 @@
           <!-- Parámetros acústicos (calculados) -->
           <div id="tab-vars" class="tab-pane">
             <div class="param-grid">
-              <div class="param-card">
+              <div class="param-card" data-tooltip="dc = 0.057·√(V/RT60). Más cerca de la fuente manda el sonido directo; más lejos, el reverberante.">
                 <div class="param-lbl">Distancia crítica</div>
                 <div class="param-val" id="p-dc">—</div>
                 <div class="param-unit">metros</div>
                 <div class="param-hint">Distancia a la fuente donde el sonido directo iguala al reverberante.</div>
               </div>
-              <div class="param-card">
+              <div class="param-card" data-tooltip="c = 331.3 + 0.606·T, con T en °C. A 20 °C son 343 m/s.">
                 <div class="param-lbl">Vel. del sonido</div>
                 <div class="param-val" id="p-vsound">—</div>
                 <div class="param-unit">m/s</div>
                 <div class="param-hint">Depende de la temperatura del aire.</div>
               </div>
-              <div class="param-card">
+              <div class="param-card" data-tooltip="Media de los coeficientes de absorción de las seis superficies, ponderada por su área y calculada banda a banda.">
                 <div class="param-lbl">α promedio</div>
                 <div class="param-val" id="p-alpha">—</div>
                 <div class="param-unit">coef. absorción</div>
                 <div class="param-hint">Absorción media ponderada por área (0 = refleja todo, 1 = absorbe todo).</div>
               </div>
-              <div class="param-card">
+              <div class="param-card" data-tooltip="R = S·α/(1−α), en m² Sabine. Es la absorción efectiva de la sala: cuanto más alta, más seca.">
                 <div class="param-lbl">Constante R</div>
                 <div class="param-val" id="p-R">—</div>
                 <div class="param-unit">m² Sabine</div>
                 <div class="param-hint">Absorción efectiva de la sala. Más alto = sala más seca.</div>
               </div>
-              <div class="param-card">
+              <div class="param-card" data-tooltip="f = 2000·√(RT60/V) con el RT60 de medias. Por debajo de ella el campo deja de ser difuso y Sabine pierde validez.">
                 <div class="param-lbl">Frec. Schroeder</div>
                 <div class="param-val" id="p-schroeder">—</div>
                 <div class="param-unit">Hz</div>
@@ -261,12 +261,12 @@
           <!-- Modos -->
           <div id="tab-modos" class="tab-pane">
             <div class="modos-head">
-              <div class="schroeder-lbl">Frecuencia de Schroeder: <strong id="schroeder-val">—</strong></div>
+              <div class="schroeder-lbl" data-tooltip="Por debajo de esta frecuencia mandan los modos individuales; por encima, el campo estadístico.">Frecuencia de Schroeder: <strong id="schroeder-val">—</strong></div>
               <div class="zone-hint">zona modal ↓ · zona estadística →</div>
             </div>
             <div class="modes-view-tabs" role="tablist" aria-label="Vista de modos">
-              <button class="modes-view-btn active" type="button" role="tab" aria-selected="true" onclick="setModesView('histogram',this)">Histograma</button>
-              <button class="modes-view-btn" type="button" role="tab" aria-selected="false" onclick="setModesView('visualization',this)">Visualización</button>
+              <button class="modes-view-btn active" type="button" role="tab" aria-selected="true" onclick="setModesView('histogram',this)" data-tooltip="Cuántos modos caen en cada banda de un tercio de octava, separados por tipo.">Histograma</button>
+              <button class="modes-view-btn" type="button" role="tab" aria-selected="false" onclick="setModesView('visualization',this)" data-tooltip="La lista de modos uno a uno. Pulsa una frecuencia para ver su patrón en el cubo 3D.">Visualización</button>
             </div>
 
             <div class="modes-view-pane active" id="modes-view-histogram">
@@ -358,15 +358,15 @@
           <div class="summary-head">
             <div>
               <div class="summary-kicker">RT60 medio · Sabine · 125 Hz – 4 kHz</div>
-              <div class="summary-rt"><span id="s-rt">—</span><small>s</small></div>
-              <div class="summary-sub" id="s-dims">—</div>
+              <div class="summary-rt" data-tooltip="Media de las seis bandas de octava de 125 Hz a 4 kHz, por Sabine. El veredicto no usa esta cifra sino T_m, de 250 Hz a 4 kHz."><span id="s-rt">—</span><small>s</small></div>
+              <div class="summary-sub" id="s-dims" data-tooltip="Largo × Ancho × Alto, las medidas interiores que se usaron en el cálculo.">—</div>
             </div>
-            <span class="chip" id="s-chip">—</span>
+            <span class="chip" id="s-chip" data-tooltip="El peor de los dos criterios de EBU Tech 3276: T_m entre 0.2 y 0.4 s, y las seis bandas dentro de la brecha de tolerancia.">—</span>
           </div>
           <div class="summary-stats">
-            <div class="summary-stat"><div class="summary-stat-lbl">Volumen</div><div class="summary-stat-val"><span id="s-vol">—</span><small>m³</small></div></div>
-            <div class="summary-stat"><div class="summary-stat-lbl">Área total</div><div class="summary-stat-val"><span id="s-area">—</span><small>m²</small></div></div>
-            <div class="summary-stat"><div class="summary-stat-lbl">Temperatura</div><div class="summary-stat-val"><span id="s-temp">—</span><small>°C</small></div></div>
+            <div class="summary-stat" data-tooltip="L × A × H. De aquí sale el valor orientativo de la fórmula de EBU, 0.25·(V/100)^(1/3)."><div class="summary-stat-lbl">Volumen</div><div class="summary-stat-val"><span id="s-vol">—</span><small>m³</small></div></div>
+            <div class="summary-stat" data-tooltip="Suma de las seis superficies. Multiplicada por el α medio da la absorción total de la sala."><div class="summary-stat-lbl">Área total</div><div class="summary-stat-val"><span id="s-area">—</span><small>m²</small></div></div>
+            <div class="summary-stat" data-tooltip="Fija la velocidad del sonido y, con ella, la absorción del aire en las bandas altas."><div class="summary-stat-lbl">Temperatura</div><div class="summary-stat-val"><span id="s-temp">—</span><small>°C</small></div></div>
           </div>
           <div class="note summary-note" id="s-note">—</div>
           <div class="summary-foot">El veredicto sigue a EBU Tech 3276: T<sub>m</sub> entre 0.2 y 0.4 s, y las seis bandas dentro de su brecha de tolerancia.</div>
