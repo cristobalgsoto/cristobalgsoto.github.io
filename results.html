@@ -49,6 +49,25 @@
     .geo-surf-mat  { font-size:10px; color:var(--text3); font-family:var(--font-mono); }
     .geo-surf-trat { font-size:10px; color:var(--accent); font-family:var(--font-mono); }
 
+    /* ── Proporciones de EBU Tech 3276 ──
+       Segundo criterio de proporciones, y de la MISMA norma de la que sale
+       el criterio de RT60. Va en una tarjeta aparte bajo el gráfico de Bolt
+       para que no se confunda con él: Bolt es una región dibujada y esto son
+       tres desigualdades. */
+    .ebu-prop-card { background:var(--surface2); box-shadow:var(--shadow-card); border-radius:var(--radius-sm); padding:18px 20px 16px; margin-top:20px; }
+    .ebu-prop-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .ebu-prop-title { font-size:10px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--text3); font-family:var(--font-mono); }
+    .ebu-prop-row { display:flex; align-items:baseline; gap:10px; padding:7px 0; border-top:1px solid var(--border2); }
+    .ebu-prop-row:first-child { border-top:0; }
+    .ebu-prop-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; align-self:center; }
+    .ebu-prop-cond { flex:1; font-size:11px; color:var(--text2); font-family:var(--font-mono); }
+    .ebu-prop-val  { font-size:11px; color:var(--text3); font-family:var(--font-mono); white-space:nowrap; }
+    .ebu-prop-foot { margin-top:12px; font-size:10px; color:var(--text3); font-family:var(--font-mono); line-height:1.6; }
+    @media (max-width: 760px) {
+      .ebu-prop-row { flex-wrap:wrap; }
+      .ebu-prop-val { width:100%; padding-left:18px; }
+    }
+
     /* ── Bolt SVG corregido ── */
     .bolt-wrap { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
     .bolt-chart-box { aspect-ratio:1; width:100%; max-width:380px; justify-self:center; }
@@ -323,6 +342,18 @@
                   Región de Bolt (1946), digitalizada de la figura (±0.02).
                   Sepmeyer, Louden, Volkmann y Boner — no todas caen dentro.
                 </div>
+              </div>
+            </div>
+
+            <div class="ebu-prop-card">
+              <div class="ebu-prop-head">
+                <div class="ebu-prop-title" data-tooltip="Segundo criterio de proporciones, de la misma norma de la que sale el objetivo de RT60. Bolt es una región dibujada; esto son tres desigualdades.">Proporciones de EBU Tech 3276</div>
+                <span class="chip" id="ebu-prop-chip">—</span>
+              </div>
+              <div id="ebu-prop-rows"></div>
+              <div class="ebu-prop-foot">
+                EBU Tech 3276, 2.ª ed. (1998), anexo de dimensiones. l = la mayor
+                dimensión de la planta, w = la menor, h = la altura.
               </div>
             </div>
           </div>

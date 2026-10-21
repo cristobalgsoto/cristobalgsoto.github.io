@@ -535,7 +535,18 @@ function proporcionesEBU(L, W, H) {
   if (!topes) motivos.push('el largo o el ancho pasan de tres veces la altura');
 
   const clase = motivos.length ? 'bad' : enteros.length ? 'warn' : 'good';
-  return { clase, cumple: motivos.length === 0, motivos, enteros, rl, rw };
+
+  // La pantalla necesita las tres comprobaciones por separado, con sus
+  // cifras, no sólo el veredicto: el valor de un criterio de proporciones
+  // está en ver POR QUÉ falla, que es lo que te dice qué dimensión mover.
+  return {
+    clase, cumple: motivos.length === 0, motivos, enteros,
+    l, w, h, rl, rw,
+    banda, topes,
+    bandaMin: 1.1 * rw,
+    bandaMax: 4.5 * rw - 4,
+    cocientes,
+  };
 }
 
 // ── Compatibilidad con las llamadas antiguas ────────────────────

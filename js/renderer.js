@@ -910,6 +910,68 @@ function renderBolt(res) {
   }
 
   renderBoltChart(res);
+  renderProporcionesEBU(res);
+}
+
+// ── Proporciones de EBU Tech 3276 ─────────────────────────────────
+//
+// Segundo criterio de proporciones, y de la MISMA norma de la que sale el
+// objetivo de RT60 — por eso acompaña a Bolt en esta pestaña y no al revés.
+// Bolt es una región dibujada a mano en 1946 y leída de una reproducción;
+// esto son tres desigualdades escritas en el documento, sin ambigüedad:
+//
+//     1.1·(w/h)  ≤  l/h  ≤  4.5·(w/h) − 4
+//     l < 3h  ,  w < 3h
+//     ningún cociente a menos del 5 % de un entero
+//
+// Se muestran LAS TRES por separado, con sus cifras, porque el valor de un
+// criterio de proporciones está en ver cuál falla: eso es lo que te dice
+// qué dimensión mover.
+function renderProporcionesEBU(res) {
+  const filas = document.getElementById('ebu-prop-rows');
+  const chip  = document.getElementById('ebu-prop-chip');
+  if (!filas || typeof proporcionesEBU !== 'function') return;
+
+  const p = proporcionesEBU(res.L, res.W, res.H);
+  if (!p) { filas.innerHTML = ''; return; }
+
+  const COLOR = { good: '#64dc82', warn: '#f0b432', bad: '#f05050' };
+  const ETIQUETA = {
+    good: '✓ Proporciones válidas',
+    warn: '≈ Válidas, con un cociente entero',
+    bad:  '⚠ Fuera de los límites',
+  };
+
+  if (chip) {
+    chip.className = 'chip chip-' + p.clase;
+    chip.textContent = ETIQUETA[p.clase];
+  }
+
+  const f = (n) => n.toFixed(2);
+  const fila = (estado, cond, valor, tip) =>
+    `<div class="ebu-prop-row"${tip ? ` data-tooltip="${tip}"` : ''}>` +
+    `<span class="ebu-prop-dot" style="background:${COLOR[estado]}"></span>` +
+    `<span class="ebu-prop-cond">${cond}</span>` +
+    `<span class="ebu-prop-val">${valor}</span></div>`;
+
+  const enteros = p.enteros.map((e) => e.nombre).join(', ');
+
+  filas.innerHTML = [
+    fila(p.banda ? 'good' : 'bad',
+      '1.1·(w/h) ≤ l/h ≤ 4.5·(w/h) − 4',
+      `l/h = ${f(p.rl)} · banda ${f(p.bandaMin)} a ${f(p.bandaMax)}`,
+      'Mantiene los modos axiales repartidos. La banda se estrecha cuando la planta es casi cuadrada.'),
+    fila(p.topes ? 'good' : 'bad',
+      'l &lt; 3h  y  w &lt; 3h',
+      `l = ${f(p.rl)}h · w = ${f(p.rw)}h`,
+      'Una sala mucho más larga que alta se comporta como un tubo: los modos de un eje se separan de los de los otros.'),
+    fila(p.enteros.length ? 'warn' : 'good',
+      'Ningún cociente a menos del 5 % de un entero',
+      p.enteros.length
+        ? `coincide: ${enteros}`
+        : p.cocientes.map((c) => `${f(c.v)}`).join(' · '),
+      'Con un cociente entero los modos de dos ejes caen encima unos de otros y se refuerzan.'),
+  ].join('');
 }
 
 // Mensaje de ayuda: si está fuera, indica qué proporción corregir y
