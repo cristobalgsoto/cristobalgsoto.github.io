@@ -719,10 +719,54 @@ function renderModes(res) {
   if (schEl) schEl.textContent = Math.round(res.schroeder) + ' Hz';
 
   renderModesDensity(res);
+  renderDistribucionModal(res);
   renderModesColumns(res);
 }
 
 // ── Histograma de densidad modal (barras apiladas por banda) ───
+
+// ── Distribución modal: Bonello y Gilford ─────────────────────────
+//
+// Los dos miran los MODOS ya calculados, no la forma de la sala, así que a
+// diferencia de Bolt y de las proporciones de EBU dependen del tamaño
+// absoluto: dos salas semejantes dan el mismo Bolt y distinto Bonello.
+//
+// El veredicto de la tarjeta es el PEOR de los dos, como en el criterio de
+// RT60: no tiene sentido decir "bien" cuando uno de los dos falla.
+function renderDistribucionModal(res) {
+  const filas = document.getElementById('modal-rows');
+  const chip  = document.getElementById('modal-chip');
+  if (!filas || typeof bonello !== 'function') return;
+
+  const b = bonello(res.modes, res.schroeder);
+  const g = gilford(res.modes);
+
+  const PESO = { good: 0, warn: 1, bad: 2 };
+  const peor = PESO[b.clase] >= PESO[g.clase] ? b.clase : g.clase;
+
+  const COLOR = { good: '#64dc82', warn: '#f0b432', bad: '#f05050' };
+  const ETIQUETA = {
+    good: '✓ Reparto modal correcto',
+    warn: '≈ Reparto modal con reservas',
+    bad:  '⚠ Reparto modal irregular',
+  };
+
+  if (chip) {
+    chip.className = 'chip chip-' + peor;
+    chip.textContent = ETIQUETA[peor];
+  }
+
+  const fila = (estado, cond, valor, tip) =>
+    `<div class="ebu-prop-row" data-tooltip="${tip}">` +
+    `<span class="ebu-prop-dot" style="background:${COLOR[estado]}"></span>` +
+    `<span class="ebu-prop-cond">${cond}</span>` +
+    `<span class="ebu-prop-val">${valor}</span></div>`;
+
+  filas.innerHTML = [
+    fila(b.clase, 'Bonello — modos por tercio de octava', b.detalle, b.nota),
+    fila(g.clase, 'Gilford — reparto de los modos axiales', g.detalle, g.nota),
+  ].join('');
+}
 
 function renderModesDensity(res) {
   const container = document.getElementById('modes-density-chart');

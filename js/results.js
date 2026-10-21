@@ -117,6 +117,26 @@ function renderRT60Chart(res, method) {
     return anillo + `<circle cx="${x(index).toFixed(1)}" cy="${y(value).toFixed(1)}" r="4" fill="${config.color}" stroke="var(--bg)" stroke-width="1.5" data-tooltip="${tip}"></circle>`;
   }).join('');
 
+  // ── La frecuencia de Schroeder ────────────────────────────────
+  // El eje X son las seis bandas de OCTAVA colocadas por índice, así que
+  // una frecuencia cualquiera cae en log2(f/125): 353 Hz -> 1.50, justo
+  // entre 250 y 500. Sólo se dibuja si entra en el eje; por debajo de
+  // 125 Hz o por encima de 4 kHz no hay dónde ponerla.
+  //
+  // Es la línea que separa las dos mitades del gráfico: a su izquierda
+  // mandan los modos individuales y el campo NO es difuso, así que ahí
+  // Sabine y Eyring —y con ellos todo lo que se dibuja— valen menos.
+  let schroederMarkup = '';
+  if (Number.isFinite(res.schroeder) && res.schroeder > 0) {
+    const idx = Math.log2(res.schroeder / BANDS[0]);
+    if (idx >= 0 && idx <= BANDS.length - 1) {
+      const sx = pad.left + (idx / (BANDS.length - 1)) * innerWidth;
+      schroederMarkup =
+        `<line x1="${sx.toFixed(1)}" y1="${pad.top}" x2="${sx.toFixed(1)}" y2="${(pad.top + innerHeight).toFixed(1)}" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5,3" data-tooltip="Frecuencia de Schroeder: ${Math.round(res.schroeder)} Hz. Por debajo mandan los modos individuales y el campo deja de ser difuso."/>` +
+        `<text x="${sx.toFixed(1)}" y="${(pad.top - 4).toFixed(1)}" text-anchor="middle" font-size="10" fill="var(--accent)" font-family="var(--font-mono)">Schroeder</text>`;
+    }
+  }
+
   // ── El campo de tolerancia de EBU, dibujado ───────────────────
   // El borde superior se quiebra en 125 Hz porque la tolerancia se
   // ensancha hacia graves; el inferior es plano en -0.05 s.
@@ -146,7 +166,7 @@ function renderRT60Chart(res, method) {
   const yAxis = `<text transform="rotate(-90)" x="${-(pad.top + innerHeight / 2)}" y="14" text-anchor="middle" font-size="11" fill="var(--text3)" font-family="var(--font-mono)">RT60 (s)</text>`;
   const xAxis = `<text x="${(pad.left + innerWidth / 2).toFixed(1)}" y="${height - 4}" text-anchor="middle" font-size="11" fill="var(--text3)" font-family="var(--font-mono)">Frecuencia (Hz)</text>`;
 
-  container.innerHTML = `<svg width="${width}" height="${height + 30}" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">${yGrid}${xGrid}${brechaMarkup}${pathMarkup}${yAxis}${xAxis}${legend}</svg>`;
+  container.innerHTML = `<svg width="${width}" height="${height + 30}" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">${yGrid}${xGrid}${brechaMarkup}${schroederMarkup}${pathMarkup}${yAxis}${xAxis}${legend}</svg>`;
 }
 
 function showTab(name, button) {

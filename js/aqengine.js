@@ -571,6 +571,172 @@ function interpretRT(tm, V) {
   return `RT60 de <strong>${tm.toFixed(1)} s</strong> — ${lecturaRT(tm, V).nota}`;
 }
 
+
+// ════════════════════════════════════════════════════════════════
+// CRITERIOS DE DISTRIBUCIÓN MODAL — Bonello (1981) y Gilford (1959)
+//
+// Bolt y las proporciones de EBU miran la FORMA de la sala y son
+// adimensionales: dos salas semejantes dan el mismo veredicto. Estos dos
+// miran los MODOS ya calculados, así que dependen del tamaño absoluto —
+// una sala el doble de grande tiene los mismos cocientes y los modos a la
+// mitad de frecuencia, y eso cambia el resultado.
+//
+// Por eso acompañan a Bolt en vez de sustituirlo: responden a una pregunta
+// distinta.
+//
+// ⚠️ PENDIENTE DE VERIFICACIÓN BIBLIOGRÁFICA, y es lo siguiente que toca.
+// Lo que hay que contrastar está marcado abajo con ⚠ en cada constante.
+// ════════════════════════════════════════════════════════════════
+
+// Centros de banda de tercio de octava, serie normalizada.
+const TERCIOS = [20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400];
+
+// ⚠ Bonello analiza el rango modal; aquí se corta en 200 Hz, que es donde
+// suele estar la frecuencia de Schroeder de una sala pequeña y donde el
+// reparto modal deja de importar. Verificar contra el artículo.
+const BONELLO_F_MAX = 200;
+
+// ⚠ "Coincidencia" = dos modos a la misma frecuencia. Con aritmética de
+// coma flotante y frecuencias redondeadas a 0.1 Hz hace falta una
+// tolerancia; 1 Hz es convención de AQVIS, no de Bonello.
+const BONELLO_COINCIDENCIA = 1.0;
+
+// ⚠ El umbral de 5 modos por banda es el que se cita habitualmente:
+// por debajo de 5, una coincidencia pesa demasiado en el total.
+const BONELLO_MIN_MODOS = 5;
+
+/** Bordes de una banda de tercio de octava: fc/2^(1/6) a fc·2^(1/6). */
+function bordesTercio(fc) {
+  const k = Math.pow(2, 1 / 6);
+  return [fc / k, fc * k];
+}
+
+/**
+ * Criterio de Bonello (1981), dos condiciones:
+ *
+ *   1. El número de modos por banda de tercio de octava debe crecer de
+ *      forma MONÓTONA: ninguna banda puede tener menos modos que la
+ *      anterior. Un escalón hacia abajo es un hueco en el espectro, y ese
+ *      hueco se oye como una nota que la sala no sostiene.
+ *   2. Ninguna banda debe tener modos COINCIDENTES, salvo que tenga al
+ *      menos cinco: con cinco o más, una coincidencia se diluye.
+ */
+function bonello(modes, schroeder) {
+  const lista = (modes || []).filter((m) => Number.isFinite(m.f)).map((m) => m.f).sort((a, b) => a - b);
+
+  // computeModes sólo llega hasta schroeder·1.15. Una banda que asome por
+  // encima de ese techo sale CORTADA y aparenta tener menos modos de los
+  // que tiene — y Bonello la leería como una bajada. Es un falso positivo
+  // que apareció a la primera: con tratamiento, la banda de 200 Hz pasaba
+  // de 31 modos a 7 y la sala "suspendía" por el final del cálculo.
+  // Se evalúan sólo las bandas que caben ENTERAS en el rango calculado.
+  const techo = Number.isFinite(schroeder) && schroeder > 0
+    ? schroeder * 1.15
+    : BONELLO_F_MAX;
+
+  const bandas = TERCIOS.filter((fc) => fc <= BONELLO_F_MAX && bordesTercio(fc)[1] <= techo).map((fc) => {
+    const [lo, hi] = bordesTercio(fc);
+    const dentro = lista.filter((f) => f >= lo && f < hi);
+    let coincidencias = 0;
+    for (let i = 1; i < dentro.length; i++) {
+      if (dentro[i] - dentro[i - 1] <= BONELLO_COINCIDENCIA) coincidencias++;
+    }
+    return { fc, n: dentro.length, coincidencias };
+  });
+
+  // La monotonía se mira desde la primera banda con modos: por debajo del
+  // primer modo axial todas valen 0 y un 0 tras otro 0 no es un escalón.
+  const primera = bandas.findIndex((b) => b.n > 0);
+  const bajadas = [];
+  const amontonadas = [];
+  for (let i = 0; i < bandas.length; i++) {
+    if (primera >= 0 && i > primera && bandas[i].n < bandas[i - 1].n) bajadas.push(bandas[i]);
+    if (bandas[i].coincidencias > 0 && bandas[i].n < BONELLO_MIN_MODOS) amontonadas.push(bandas[i]);
+  }
+
+  const clase = bajadas.length === 0 && amontonadas.length === 0 ? 'good'
+              : bajadas.length + amontonadas.length <= 2 ? 'warn' : 'bad';
+
+  const nombres = (bs) => bs.map((b) => `${b.fc} Hz`).join(', ');
+  let nota;
+  if (clase === 'good') {
+    nota = 'El número de modos crece banda a banda y ninguna banda escasa tiene modos coincidentes.';
+  } else {
+    const trozos = [];
+    if (bajadas.length) trozos.push(`baja el número de modos en ${nombres(bajadas)}`);
+    if (amontonadas.length) trozos.push(`hay modos coincidentes con menos de ${BONELLO_MIN_MODOS} modos en ${nombres(amontonadas)}`);
+    nota = trozos.join('; ') + '.';
+  }
+
+  return {
+    clase, nota, bandas, bajadas, amontonadas, techo,
+    detalle: bandas.filter((b) => b.n > 0).map((b) => b.n).join(' · ') || '—',
+  };
+}
+
+// ⚠ Gilford habla de los modos AXIALES, que son los que llevan más
+// energía. Los dos números —separación máxima y mínima— son los que se
+// citan habitualmente; verificar contra el original.
+const GILFORD_F_MAX = 200;      // Hz, el rango donde el reparto axial importa
+const GILFORD_HUECO = 20;       // Hz, separación máxima aceptable
+const GILFORD_JUNTOS = 5;       // Hz, por debajo hay degeneración
+
+/**
+ * Criterio de Gilford (1959): la serie de modos AXIALES no debe tener ni
+ * huecos ni amontonamientos.
+ *
+ *   · Un hueco de más de 20 Hz deja una zona sin soporte modal, y la sala
+ *     suena hundida ahí.
+ *   · Dos modos a menos de 5 Hz se refuerzan y dan coloración: la sala
+ *     "canta" esa nota.
+ *
+ * Mira sólo hasta 200 Hz porque por encima la densidad modal ya es alta y
+ * los axiales dejan de dominar.
+ */
+function gilford(modes) {
+  const axiales = (modes || [])
+    .filter((m) => m.type === 'axial' && m.f <= GILFORD_F_MAX)
+    .map((m) => m.f)
+    .sort((a, b) => a - b);
+
+  const huecos = [];
+  const juntos = [];
+  for (let i = 1; i < axiales.length; i++) {
+    const d = axiales[i] - axiales[i - 1];
+    if (d > GILFORD_HUECO) huecos.push({ de: axiales[i - 1], a: axiales[i], d });
+    else if (d < GILFORD_JUNTOS) juntos.push({ de: axiales[i - 1], a: axiales[i], d });
+  }
+
+  const clase = huecos.length === 0 && juntos.length === 0 ? 'good'
+              : huecos.length + juntos.length <= 2 ? 'warn' : 'bad';
+
+  const f1 = (x) => x.toFixed(0);
+  let nota;
+  if (!axiales.length) {
+    nota = `No hay modos axiales por debajo de ${GILFORD_F_MAX} Hz para evaluar.`;
+  } else if (clase === 'good') {
+    nota = `Los ${axiales.length} modos axiales por debajo de ${GILFORD_F_MAX} Hz están repartidos sin huecos ni coincidencias.`;
+  } else {
+    const trozos = [];
+    if (huecos.length) {
+      const peor = huecos.reduce((a, b) => (b.d > a.d ? b : a));
+      trozos.push(`${huecos.length === 1 ? 'un hueco' : huecos.length + ' huecos'} de más de ${GILFORD_HUECO} Hz (el mayor, ${f1(peor.d)} Hz entre ${f1(peor.de)} y ${f1(peor.a)} Hz)`);
+    }
+    if (juntos.length) {
+      const peor = juntos.reduce((a, b) => (b.d < a.d ? b : a));
+      trozos.push(`${juntos.length === 1 ? 'un par' : juntos.length + ' pares'} a menos de ${GILFORD_JUNTOS} Hz (el peor, ${f1(peor.d)} Hz en ${f1(peor.de)} Hz)`);
+    }
+    nota = trozos.join(' y ') + '.';
+  }
+
+  return {
+    clase, nota, axiales, huecos, juntos,
+    detalle: axiales.length
+      ? `${axiales.length} axiales · separación ${axiales.length > 1 ? f1(Math.min(...axiales.slice(1).map((f, i) => f - axiales[i]))) + ' a ' + f1(Math.max(...axiales.slice(1).map((f, i) => f - axiales[i]))) + ' Hz' : '—'}`
+      : '—',
+  };
+}
+
 // ════════════════════════════════════════════════════════════════
 // MOTOR PRINCIPAL
 // ════════════════════════════════════════════════════════════════
@@ -823,7 +989,7 @@ if (typeof module !== 'undefined' && module.exports) {
     calculate, speedOfSound, combineAlphaByArea, classifyRT, interpretRT,
     lecturaRT, claseRT, tNominalRT, tmCriterio,
     brechaRT, lecturaEBU, toleranciaSuperior, ambitoEBU, proporcionesEBU,
-    unidadBanda,
+    unidadBanda, bonello, gilford, TERCIOS,
     EBU_TM_MIN, EBU_TM_MAX, EBU_V_MAX, EBU_AREA_MIN_REF, EBU_AREA_MIN_CTRL,
     getConstructionForSurface, getTreatmentForSurface, pointInPolygon, computeModes,
     CONSTRUCTION_MATERIALS, TREATMENT_MATERIALS, BANDS, BAND_LABELS,
