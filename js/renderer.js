@@ -949,29 +949,39 @@ function renderProporcionesEBU(res) {
   }
 
   const f = (n) => n.toFixed(2);
-  const fila = (estado, cond, valor, tip) =>
-    `<div class="ebu-prop-row"${tip ? ` data-tooltip="${tip}"` : ''}>` +
+  // nombre = qué pide la condición, en castellano; formula = la
+  // desigualdad del documento, compuesta; valor = lo que mide esta sala.
+  const fila = (estado, nombre, formula, valor, titulo, tip) =>
+    `<div class="ebu-prop-row" data-tooltip-title="${titulo}" data-tooltip="${tip}">` +
     `<span class="ebu-prop-dot" style="background:${COLOR[estado]}"></span>` +
-    `<span class="ebu-prop-cond">${cond}</span>` +
+    `<span class="ebu-prop-cond"><span class="ebu-prop-name">${nombre}</span>` +
+    (formula ? `<span class="ebu-prop-fx">${fx(formula)}</span>` : '') +
+    `</span>` +
     `<span class="ebu-prop-val">${valor}</span></div>`;
 
   const enteros = p.enteros.map((e) => e.nombre).join(', ');
 
   filas.innerHTML = [
     fila(p.banda ? 'good' : 'bad',
-      '1.1·(w/h) ≤ l/h ≤ 4.5·(w/h) − 4',
-      `l/h = ${f(p.rl)} · banda ${f(p.bandaMin)} a ${f(p.bandaMax)}`,
-      'Mantiene los modos axiales repartidos. La banda se estrecha cuando la planta es casi cuadrada.'),
+      'El largo guarda proporción con el ancho y el alto',
+      '1.1·{*w* | *h*} ≤ {*l* | *h*} ≤ 4.5·{*w* | *h*} − 4',
+      `<b>${f(p.rl)}</b>admite ${f(p.bandaMin)} a ${f(p.bandaMax)}`,
+      'Proporción del largo',
+      'Es la condición principal: mantiene los modos axiales de los tres ejes repartidos en vez de amontonados. La banda que se admite se estrecha cuando la planta es casi cuadrada.'),
     fila(p.topes ? 'good' : 'bad',
-      'l &lt; 3h  y  w &lt; 3h',
-      `l = ${f(p.rl)}h · w = ${f(p.rw)}h`,
-      'Una sala mucho más larga que alta se comporta como un tubo: los modos de un eje se separan de los de los otros.'),
+      'Ni el largo ni el ancho pasan de tres veces la altura',
+      '*l* < 3*h*  ·  *w* < 3*h*',
+      `<b>${f(p.rl)} h</b>${f(p.rw)} h`,
+      'Tope de esbeltez',
+      'Una sala mucho más larga que alta se comporta como un tubo: los modos de ese eje se separan de los de los otros dos y la sala suena con una nota propia.'),
     fila(p.enteros.length ? 'warn' : 'good',
-      'Ningún cociente a menos del 5 % de un entero',
+      'Ningún cociente queda a menos del 5 % de un número entero',
+      null,
       p.enteros.length
-        ? `coincide: ${enteros}`
-        : p.cocientes.map((c) => `${f(c.v)}`).join(' · '),
-      'Con un cociente entero los modos de dos ejes caen encima unos de otros y se refuerzan.'),
+        ? `<b>coincide</b>${enteros}`
+        : `<b>${p.cocientes.map((c) => f(c.v)).join(' · ')}</b>ninguno entero`,
+      'Cocientes enteros',
+      'Si un cociente es entero, los modos de dos ejes caen encima unos de otros y se refuerzan: la sala «canta» esas notas. Avisa, no suspende.'),
   ].join('');
 }
 

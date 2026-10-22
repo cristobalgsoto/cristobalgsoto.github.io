@@ -36,7 +36,7 @@ const BAND_LABELS = ['125', '250', '500', '1k', '2k', '4k'];
 // valor opcional no cuentan); el lado que lee puede entonces detectar datos
 // de una versión anterior y descartarlos en vez de asumir una forma que ya
 // no es cierta.
-const AQVIS_SCHEMA_VERSION = 2;  // 2: RT_avg (Sabine, 125 Hz-4 kHz) sustituye a RT_mid como valor del resumen
+const AQVIS_SCHEMA_VERSION = 3;  // 3: RT_avg pasa a 250 Hz-4 kHz y coincide con T_m, el valor del criterio
 
 // Orden canónico que calculate() asume en input.surfaces[] — lo necesita
 // Fitzroy para agrupar pares de superficies opuestas por índice fijo (ver
@@ -246,8 +246,7 @@ function combineAlphaByArea(baseAlpha, treatAlpha, surfaceArea, treatArea) {
 }
 
 // Reciben el valor que se presenta como resumen (RT_avg: Sabine, media de
-// 125 Hz a 4 kHz), no el T_mid de medias frecuencias. Los umbrales son de
-// lectura general, no de una norma.
+// 250 Hz a 4 kHz), que es el mismo T_m con el que juzga EBU Tech 3276.
 // ════════════════════════════════════════════════════════════════
 // CRITERIO DE REVERBERACIÓN  —  EBU Tech 3276, 2ª edición (mayo 1998)
 //
@@ -635,8 +634,9 @@ function calculate(input) {
   // ── Los dos tiempos de reverberación representativos ─────────
   //
   // RT_avg — VALOR PRINCIPAL, el que se muestra en el resumen.
-  //   Media aritmética de las seis bandas de octava de 125 Hz a 4 kHz,
-  //   calculadas por SABINE.
+  //   Media aritmética de las bandas de octava de 250 Hz a 4 kHz,
+  //   calculadas por SABINE. Es EXACTAMENTE T_m, el valor con el que
+  //   EBU Tech 3276 juzga la sala.
   //
   //   Por qué Sabine y no Eyring: los coeficientes de absorción tabulados
   //   que alimentan este motor se miden en cámara reverberante por el
@@ -646,15 +646,23 @@ function calculate(input) {
   //   calculado y a la vista en la pestaña Decay, pero el valor que se
   //   presenta como resumen es el de Sabine.
   //
-  //   Por qué las seis bandas: el resultado se presenta como una
-  //   caracterización global del recinto para uso general, no como el
-  //   T_mid de la norma. ATENCIÓN al interpretarlo: la banda de 125 Hz
-  //   suele quedar POR DEBAJO de la frecuencia de Schroeder de la sala,
-  //   donde el modelo estadístico de campo difuso que sustenta a Sabine
-  //   y a Eyring deja de ser válido. En salas pequeñas con tratamiento
-  //   esa banda es además la de mayor RT, así que tira del promedio
-  //   hacia arriba. La curva por bandas de la pestaña Decay es la
-  //   lectura fiel; este promedio es un resumen.
+  //   Por qué 250 Hz y no 125: la cifra que se ENSEÑA y la que se JUZGA
+  //   tienen que ser la misma. Antes se mostraba la media de las seis
+  //   bandas y se juzgaba con cinco, y aunque el motivo era razonable
+  //   —dar una caracterización global del recinto— obligaba a explicar
+  //   por qué el número grande de la pantalla no era el que decidía el
+  //   veredicto. En una memoria de título eso no se sostiene: el
+  //   protocolo que se defiende es el T_m de EBU Tech 3276, así que es
+  //   el que se presenta.
+  //
+  //   Además la banda de 125 Hz suele quedar POR DEBAJO de la frecuencia
+  //   de Schroeder de la sala, donde el campo difuso que sustenta a
+  //   Sabine y a Eyring deja de ser válido; en salas pequeñas con
+  //   tratamiento es encima la de mayor RT, así que tiraba del promedio
+  //   hacia arriba. Dejarla fuera es también lo defendible físicamente.
+  //
+  //   La curva por bandas de la pestaña Decay sigue siendo la lectura
+  //   fiel, de 125 Hz a 4 kHz; este promedio es el criterio.
   //
   // RT_mid — tiempo de reverberación de MEDIAS FRECUENCIAS: media de las
   //   bandas de 500 Hz y 1 kHz (índices 2 y 3), el T_mid habitual. No se
@@ -662,9 +670,11 @@ function calculate(input) {
   //   Schroeder, porque la expresión f_s = 2000·√(T/V) se formula sobre
   //   el tiempo de reverberación de medias frecuencias.
   const media = (bandas) => bandas.reduce((a, b) => a + (b || 0), 0) / bandas.length;
-  const RT_avg = media(RT_sabine);
-  // T_m del criterio de EBU/ITU: 250 Hz a 4 kHz, no las seis bandas.
+  // Las dos son ya la misma cuenta, y se dejan las dos nombradas para no
+  // romper a quien lea RT_ebu: el resumen y el veredicto no pueden
+  // discrepar porque salen de la misma linea.
   const RT_ebu = tmCriterio(RT_sabine);
+  const RT_avg = RT_ebu;
   const RT_mid = (RT_sabine[2] + RT_sabine[3]) / 2;
 
   // ── RT60 Fitzroy — solo si hasTreatment ─────────────────────

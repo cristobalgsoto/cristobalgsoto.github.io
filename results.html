@@ -57,11 +57,17 @@
     .ebu-prop-card { background:var(--surface2); box-shadow:var(--shadow-card); border-radius:var(--radius-sm); padding:18px 20px 16px; margin-top:20px; }
     .ebu-prop-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
     .ebu-prop-title { font-size:10px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--text3); font-family:var(--font-mono); }
-    .ebu-prop-row { display:flex; align-items:baseline; gap:10px; padding:7px 0; border-top:1px solid var(--border2); }
-    .ebu-prop-row:first-child { border-top:0; }
-    .ebu-prop-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; align-self:center; }
-    .ebu-prop-cond { flex:1; font-size:11px; color:var(--text2); font-family:var(--font-mono); }
-    .ebu-prop-val  { font-size:11px; color:var(--text3); font-family:var(--font-mono); white-space:nowrap; }
+    /* Cada condición ocupa dos líneas: el nombre en castellano arriba y la
+       desigualdad compuesta debajo. La cifra medida va en su columna. */
+    .ebu-prop-row { display:grid; grid-template-columns:9px 1fr auto; align-items:start; gap:0 12px; padding:13px 0; border-top:1px solid var(--border2); }
+    .ebu-prop-row:first-child { border-top:0; padding-top:4px; }
+    .ebu-prop-dot { width:8px; height:8px; border-radius:2px; margin-top:4px; }
+    .ebu-prop-cond { min-width:0; }
+    .ebu-prop-name { display:block; font-size:13px; color:var(--text2); line-height:1.4; }
+    .ebu-prop-fx   { display:block; margin-top:8px; }
+    .ebu-prop-fx .fx { font-size:15px; color:var(--text3); }
+    .ebu-prop-val  { font-size:12px; color:var(--text3); font-family:var(--font-mono); white-space:nowrap; text-align:right; line-height:1.55; padding-top:1px; }
+    .ebu-prop-val b { display:block; color:var(--text2); font-weight:600; }
     /* ══ TARJETA DE ORIGEN DEL MODELO (pestaña Decay) ══
        Historia, fórmula y límites del modelo seleccionado. El cuerpo va a
        13px y no a 10: si hay una explicación, tiene que poder leerse. */
@@ -69,17 +75,17 @@
     .fx-card-head { margin-bottom:12px; }
     .fx-card-kicker { font-size:10px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--text3); font-family:var(--font-mono); }
     .fx-card-title { font-size:17px; font-weight:600; color:var(--text); margin-top:5px; }
-    .fx-card-body { font-size:13px; line-height:1.75; color:var(--text2); margin:0; }
+    .fx-card-body { font-size:13px; line-height:1.75; color:var(--text2); margin:0; text-align:justify; hyphens:auto; }
     .fx-card-eqs { margin:16px 0 0; padding:16px 0; border-top:1px solid var(--border2); border-bottom:1px solid var(--border2); text-align:center; }
     .fx-card-eqs .fx-row { padding:4px 0; }
     .fx-card-eqs .fx-where { font-size:11px; color:var(--text3); font-family:var(--font-mono); margin:9px 0 7px; }
     .fx-card-legend { margin-top:13px; display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:5px 18px; }
     .fx-leg-item { display:flex; align-items:baseline; gap:8px; font-size:12px; line-height:1.55; color:var(--text3); }
     .fx-leg-item > .fx { flex:none; min-width:30px; }
-    .fx-card-when { margin-top:15px; font-size:13px; line-height:1.75; color:var(--text2); }
+    .fx-card-when { margin-top:15px; font-size:13px; line-height:1.75; color:var(--text2); text-align:justify; hyphens:auto; }
     .fx-card-when-lbl { display:block; font-size:10px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent); font-family:var(--font-mono); margin-bottom:5px; }
 
-    .ebu-prop-foot { margin-top:13px; font-size:12px; color:var(--text3); font-family:var(--font-mono); line-height:1.7; }
+    .ebu-prop-foot { margin-top:14px; font-size:12px; color:var(--text3); font-family:var(--font-mono); line-height:1.7; text-align:justify; hyphens:auto; }
     @media (max-width: 760px) {
       .ebu-prop-row { flex-wrap:wrap; }
       .ebu-prop-val { width:100%; padding-left:18px; }
@@ -140,7 +146,7 @@
     .summary-stat-val { font-size:16px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap; }
     .summary-stat-val small { font-size:10px; font-weight:500; color:var(--text3); margin-left:2px; }
     .summary-note { margin-top:12px; }
-    .summary-foot { margin-top:9px; font-size:11.5px; line-height:1.65; color:var(--text3); }
+    .summary-foot { margin-top:9px; font-size:11.5px; line-height:1.65; color:var(--text3); text-align:justify; hyphens:auto; }
     .summary-actions { display:flex; gap:8px; margin-top:14px; }
     .summary-actions .recalc-btn { padding:10px; }
 
@@ -423,8 +429,8 @@
         <div class="summary-card">
           <div class="summary-head">
             <div>
-              <div class="summary-kicker">RT60 medio · Sabine · 125 Hz – 4 kHz</div>
-              <div class="summary-rt" data-tooltip-title="RT60 medio" data-tooltip="La media de las seis bandas de octava, de 125 Hz a 4 kHz, calculada por Sabine. Es un resumen para hacerse una idea; el veredicto de la norma no usa esta cifra sino la media de 250 Hz a 4 kHz, que deja fuera los graves."><span id="s-rt">—</span><small>s</small></div>
+              <div class="summary-kicker">RT60 medio · Sabine · 250 Hz – 4 kHz</div>
+              <div class="summary-rt" data-tooltip-title="RT60 medio" data-tooltip="La media de las bandas de octava de 250 Hz a 4 kHz, calculada por Sabine. Es el T_m con el que EBU Tech 3276 juzga la sala: la cifra que ves aquí es exactamente la que decide el veredicto. Los 125 Hz quedan fuera porque suelen caer por debajo de la frecuencia de Schroeder, donde el cálculo vale menos."><span id="s-rt">—</span><small>s</small></div>
               <div class="summary-sub" id="s-dims" data-tooltip-title="Medidas" data-tooltip="Largo, ancho y alto por dentro, de superficie a superficie. Son las que se usaron en el cálculo.">—</div>
             </div>
             <span class="chip" id="s-chip" data-tooltip-title="Veredicto" data-tooltip="Se queda con el peor de los dos criterios de EBU Tech 3276: que el tiempo medio esté entre 0.2 y 0.4 s, y que ninguna de las seis bandas se salga de su franja de tolerancia. Basta con que falle uno para que baje la nota.">—</span>

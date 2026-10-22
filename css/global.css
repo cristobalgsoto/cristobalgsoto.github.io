@@ -166,6 +166,8 @@ body {
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.55;
+  text-align: justify;
+  hyphens: auto;
   pointer-events: none;
   opacity: 0;
   transform: translateY(4px);
@@ -629,6 +631,8 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.25); }
 
 /* ── NOTES ── */
 .note {
+  text-align: justify;
+  hyphens: auto;
   padding: 12px 14px;
   border-radius: var(--radius-sm);
   font-size: 12.5px;
@@ -837,7 +841,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.25); }
 .modes-view-btn.active { background:var(--accent); color:var(--bg); }
 .modes-view-pane { display:none; }
 .modes-view-pane.active { display:block; animation:fadeUp 0.2s ease; }
-.modes-help,.histogram-help { max-width:760px; margin:-6px 0 16px; color:var(--text3); font-size:12.5px; line-height:1.7; }
+.modes-help,.histogram-help { max-width:760px; margin:-6px 0 16px; color:var(--text3); font-size:12.5px; line-height:1.7; text-align:justify; hyphens:auto; }
 .histogram-help { margin:-4px 0 16px; }
 
 /* ── GEO SURFACES ── */
