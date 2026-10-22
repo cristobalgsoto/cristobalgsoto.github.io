@@ -47,7 +47,18 @@ function initAqvisTooltips() {
     const target = event.target.closest?.('[data-tooltip]');
     if (!target) return;
     activeTarget = target;
-    tooltip.textContent = target.dataset.tooltip;
+    // El globo tiene tres partes, y de las tres sólo el cuerpo es
+    // obligatorio: un titulillo que dice de qué se está hablando, la
+    // explicación en llano, y la fórmula compuesta al pie para quien la
+    // quiera. Ese orden es deliberado: antes el globo EMPEZABA por la
+    // fórmula, y quien no la reconocía se quedaba sin saber qué era la
+    // cifra que estaba mirando.
+    const titulo = target.dataset.tooltipTitle;
+    const formula = target.dataset.tooltipFx;
+    tooltip.innerHTML =
+      (titulo ? `<span class="aq-tip-title">${fxEscapar(titulo)}</span>` : '') +
+      fxEscapar(target.dataset.tooltip || '') +
+      (formula && typeof fx === 'function' ? `<span class="aq-tip-fx">${fx(formula)}</span>` : '');
     tooltip.classList.add('visible');
     moveTooltip(event);
   });

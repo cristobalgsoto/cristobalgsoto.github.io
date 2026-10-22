@@ -50,7 +50,7 @@ function renderSummary(res, inp) {
   set('s-temp', inp && Number.isFinite(+inp.T) ? (+inp.T).toFixed(0) : '—');
 
   if (inp) {
-    set('s-dims', `${fmt(+inp.L, 2)} × ${fmt(+inp.W, 2)} × ${fmt(+inp.H, 2)} m  (L × A × H)`);
+    set('s-dims', `${fmt(+inp.L, 2)} × ${fmt(+inp.W, 2)} × ${fmt(+inp.H, 2)} m`);
   }
 
   const chip = document.getElementById('s-chip');

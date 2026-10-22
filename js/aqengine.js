@@ -466,28 +466,41 @@ function lecturaEBU(bandas, V, L, W) {
   const altas = BAND_LABELS.filter((_, i) => estado[i] === 'alta');
   const bajas = BAND_LABELS.filter((_, i) => estado[i] === 'baja');
 
+  // La nota se escribe para que la entienda quien no conoce la norma:
+  // primero QUÉ pasa con la sala, en una frase, y después la cifra que
+  // lo sostiene. Antes empezaba por "T_m de 0.50 s, por encima del rango
+  // de 0.2 a 0.4 s", que sólo dice algo a quien ya sabe qué es T_m.
   let nota;
   if (claseTm !== 'good') {
-    const donde = tm > EBU_TM_MAX ? 'por encima' : 'por debajo';
-    nota = `T<sub>m</sub> de ${tm.toFixed(2)} s, ${donde} del rango de ` +
-           `${EBU_TM_MIN.toFixed(1)} a ${EBU_TM_MAX.toFixed(1)} s de la norma ` +
-           `(la guía para ${V.toFixed(0)} m³ son ${guia.toFixed(2)} s).`;
-    nota += tm > EBU_TM_MAX
-      ? ' Considera tratamiento absorbente.'
-      : ' La sala puede sonar apagada.';
+    nota = tm > EBU_TM_MAX
+      ? `<b>La sala reverbera más de lo que pide la norma.</b> El tiempo medio ` +
+        `entre 250 Hz y 4 kHz es de ${tm.toFixed(2)} s, y EBU Tech 3276 lo quiere ` +
+        `entre ${EBU_TM_MIN.toFixed(1)} y ${EBU_TM_MAX.toFixed(1)} s; para los ` +
+        `${V.toFixed(0)} m³ de esta sala, lo deseable rondaría ${guia.toFixed(2)} s. ` +
+        `Para bajarlo hay que añadir material absorbente.`
+      : `<b>La sala está más apagada de lo que pide la norma.</b> El tiempo medio ` +
+        `entre 250 Hz y 4 kHz es de ${tm.toFixed(2)} s, y EBU Tech 3276 lo quiere ` +
+        `entre ${EBU_TM_MIN.toFixed(1)} y ${EBU_TM_MAX.toFixed(1)} s; para los ` +
+        `${V.toFixed(0)} m³ de esta sala, lo deseable rondaría ${guia.toFixed(2)} s. ` +
+        `Con tan poca reverberación la sala puede sonar seca y sin cuerpo.`;
   } else if (dentro === total) {
-    nota = `T<sub>m</sub> de ${tm.toFixed(2)} s, dentro del rango de la norma, y las ` +
-           `seis bandas caen dentro de la brecha de tolerancia.`;
+    nota = `<b>La sala cumple la norma.</b> El tiempo medio es de ${tm.toFixed(2)} s, ` +
+           `dentro de lo que pide EBU Tech 3276, y las seis bandas caen dentro de la ` +
+           `franja de tolerancia: la reverberación dura casi lo mismo en graves que ` +
+           `en agudos, que es lo que se busca.`;
   } else {
     const trozos = [];
     if (altas.length) trozos.push(`${listar(altas)} por encima`);
     if (bajas.length) trozos.push(`${listar(bajas)} por debajo`);
-    nota = `T<sub>m</sub> de ${tm.toFixed(2)} s está en rango, pero ${trozos.join('; ')} ` +
-           `de la brecha de tolerancia alrededor de T<sub>m</sub>.`;
+    nota = `<b>El tiempo medio cumple, pero la curva no es plana.</b> ` +
+           `Con ${tm.toFixed(2)} s de media la sala está en rango, aunque ` +
+           `${trozos.join('; ')} de la franja de tolerancia. Eso se oye como un ` +
+           `desequilibrio de timbre entre unas frecuencias y otras.`;
   }
 
   if (!ambito.dentro) {
-    nota += ` ${mayus(ambito.motivos.join(' y '))}: criterio orientativo.`;
+    nota += ` <i>Ojo: ${ambito.motivos.join(' y ')}, y la norma está escrita para ` +
+            `salas mayores, así que esto vale como orientación y no como veredicto.</i>`;
   }
 
   return {

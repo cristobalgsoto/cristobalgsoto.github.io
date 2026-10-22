@@ -688,6 +688,7 @@ function renderDecay(res) {
   // gráfico en sí viven en results.js (renderDecayToggle / renderRT60Chart) —
   // acá solo se delega y se arma la nota interpretativa.
   if (typeof renderDecayToggle === 'function') renderDecayToggle(res);
+  if (typeof renderDecayOrigen === 'function') renderDecayOrigen(decayMethod);
 
   // La nota de la pestaña Decay dice lo mismo que el gráfico que tiene
   // encima: cuántas bandas caen dentro del campo de tolerancia y cuáles no.
@@ -1015,7 +1016,7 @@ function renderBoltChart(res) {
 
   const W = container.clientWidth  || 400;
   const H = container.clientHeight || 400;
-  const PAD = { top: 14, right: 14, bottom: 30, left: 32 };
+  const PAD = { top: 14, right: 14, bottom: 38, left: 44 };
   const innerW = W - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
 
@@ -1050,7 +1051,7 @@ function renderBoltChart(res) {
   const boltShape = `<polygon points="${polyPoints}" fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>`;
 
   const refDots = BOLT_REFERENCE_RATIOS.map(r => `
-    <circle cx="${xPos(r.x).toFixed(1)}" cy="${yPos(r.y).toFixed(1)}" r="3.5" fill="var(--surface)" stroke="var(--text3)" stroke-width="1.3" data-tooltip="${r.name}: ${r.x.toFixed(2)}, ${r.y.toFixed(2)}"></circle>`).join('');
+    <circle cx="${xPos(r.x).toFixed(1)}" cy="${yPos(r.y).toFixed(1)}" r="3.5" fill="var(--surface)" stroke="var(--text3)" stroke-width="1.3" data-tooltip-title="${r.name}" data-tooltip="Una de las proporciones de referencia que se citan como favorables. Sus cocientes son ${r.x.toFixed(2)} de media entre menor y ${r.y.toFixed(2)} de mayor entre menor."></circle>`).join('');
 
   const roomColor = res.inBolt ? '#64dc82' : '#f05050';
   const rx = xPos(res.boltX), ry = yPos(res.boltY);

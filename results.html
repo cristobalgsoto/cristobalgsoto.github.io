@@ -62,7 +62,24 @@
     .ebu-prop-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; align-self:center; }
     .ebu-prop-cond { flex:1; font-size:11px; color:var(--text2); font-family:var(--font-mono); }
     .ebu-prop-val  { font-size:11px; color:var(--text3); font-family:var(--font-mono); white-space:nowrap; }
-    .ebu-prop-foot { margin-top:12px; font-size:10px; color:var(--text3); font-family:var(--font-mono); line-height:1.6; }
+    /* ══ TARJETA DE ORIGEN DEL MODELO (pestaña Decay) ══
+       Historia, fórmula y límites del modelo seleccionado. El cuerpo va a
+       13px y no a 10: si hay una explicación, tiene que poder leerse. */
+    .fx-card { background:var(--surface2); box-shadow:var(--shadow-card); border-radius:var(--radius-sm); padding:18px 20px 16px; margin-top:20px; }
+    .fx-card-head { margin-bottom:12px; }
+    .fx-card-kicker { font-size:10px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--text3); font-family:var(--font-mono); }
+    .fx-card-title { font-size:17px; font-weight:600; color:var(--text); margin-top:5px; }
+    .fx-card-body { font-size:13px; line-height:1.75; color:var(--text2); margin:0; }
+    .fx-card-eqs { margin:16px 0 0; padding:16px 0; border-top:1px solid var(--border2); border-bottom:1px solid var(--border2); text-align:center; }
+    .fx-card-eqs .fx-row { padding:4px 0; }
+    .fx-card-eqs .fx-where { font-size:11px; color:var(--text3); font-family:var(--font-mono); margin:9px 0 7px; }
+    .fx-card-legend { margin-top:13px; display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:5px 18px; }
+    .fx-leg-item { display:flex; align-items:baseline; gap:8px; font-size:12px; line-height:1.55; color:var(--text3); }
+    .fx-leg-item > .fx { flex:none; min-width:30px; }
+    .fx-card-when { margin-top:15px; font-size:13px; line-height:1.75; color:var(--text2); }
+    .fx-card-when-lbl { display:block; font-size:10px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent); font-family:var(--font-mono); margin-bottom:5px; }
+
+    .ebu-prop-foot { margin-top:13px; font-size:12px; color:var(--text3); font-family:var(--font-mono); line-height:1.7; }
     @media (max-width: 760px) {
       .ebu-prop-row { flex-wrap:wrap; }
       .ebu-prop-val { width:100%; padding-left:18px; }
@@ -116,14 +133,14 @@
     .summary-kicker { font-size:10px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--text3); font-family:var(--font-mono); margin-bottom:6px; }
     .summary-rt { font-size:40px; font-weight:700; line-height:1; color:var(--text); font-variant-numeric:tabular-nums; }
     .summary-rt small { font-size:16px; font-weight:500; color:var(--text3); margin-left:4px; }
-    .summary-sub { font-size:11px; color:var(--text3); margin-top:6px; font-family:var(--font-mono); }
+    .summary-sub { font-size:12px; color:var(--text3); margin-top:6px; font-family:var(--font-mono); }
     .summary-stats { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
     .summary-stat { background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; }
     .summary-stat-lbl { font-size:9px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text3); margin-bottom:6px; }
     .summary-stat-val { font-size:16px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap; }
     .summary-stat-val small { font-size:10px; font-weight:500; color:var(--text3); margin-left:2px; }
     .summary-note { margin-top:12px; }
-    .summary-foot { margin-top:8px; font-size:10px; line-height:1.5; color:var(--text3); }
+    .summary-foot { margin-top:9px; font-size:11.5px; line-height:1.65; color:var(--text3); }
     .summary-actions { display:flex; gap:8px; margin-top:14px; }
     .summary-actions .recalc-btn { padding:10px; }
 
@@ -200,11 +217,11 @@
       <!-- ══ TABS ══ -->
       <div class="tabs-panel">
         <div class="tab-nav">
-          <button class="tab-btn active" onclick="showTab('espacio',this)" data-tooltip="Geometría del recinto: volumen, superficies y el material de cada una.">Espacio</button>
-          <button class="tab-btn" onclick="showTab('vars',this)" data-tooltip="Las cifras intermedias de las que sale el RT60.">Parámetros</button>
-          <button class="tab-btn" onclick="showTab('decay',this)" data-tooltip="Curva de RT60 banda a banda y la brecha de tolerancia de EBU Tech 3276.">Decay</button>
-          <button class="tab-btn" onclick="showTab('modos',this)" data-tooltip="Modos propios del recinto y cómo se reparten por banda.">Modos</button>
-          <button class="tab-btn" onclick="showTab('bolt',this)" data-tooltip="Las proporciones del recinto contra la región de Bolt (1946).">Criterio de Bolt</button>
+          <button class="tab-btn active" onclick="showTab('espacio',this)" data-tooltip-title="Espacio" data-tooltip="Las medidas de la sala y de qué está hecha cada cara: volumen, área total y el material de suelo, techo y paredes. Es el punto de partida de todo lo demás.">Espacio</button>
+          <button class="tab-btn" onclick="showTab('vars',this)" data-tooltip-title="Variables" data-tooltip="Los valores intermedios del cálculo — camino libre medio, distancia crítica, absorción media — que explican por qué el RT60 sale como sale.">Parámetros</button>
+          <button class="tab-btn" onclick="showTab('decay',this)" data-tooltip-title="Decay" data-tooltip="Cuánto dura la reverberación en cada banda de frecuencia, con la franja que la norma da por buena. Arriba puedes cambiar de modelo de cálculo y ver en qué se diferencian.">Decay</button>
+          <button class="tab-btn" onclick="showTab('modos',this)" data-tooltip-title="Modos" data-tooltip="Las frecuencias a las que la sala resuena por su propia forma. En graves son pocas y están separadas, y eso se oye: hay notas que la sala refuerza y otras que se traga.">Modos</button>
+          <button class="tab-btn" onclick="showTab('bolt',this)" data-tooltip-title="Bolt" data-tooltip="Si las tres medidas de la sala guardan buena proporción entre sí, los modos quedan bien repartidos. La zona dibujada es la que Bolt propuso en 1946 como favorable.">Criterio de Bolt</button>
         </div>
 
         <div class="tab-content">
@@ -212,7 +229,7 @@
           <!-- Espacio -->
           <div id="tab-espacio" class="tab-pane active">
             <div class="param-grid" style="margin-bottom:14px">
-              <div class="param-card" data-tooltip="4V/S: el camino medio del sonido entre dos reflexiones. Cuanto más corto, más veces rebota por segundo y más pesa la absorción.">
+              <div class="param-card" data-tooltip-title="Camino libre medio" data-tooltip="La distancia que recorre el sonido, de media, entre un rebote y el siguiente. Cuanto más corta, más veces rebota por segundo y antes se lo come la absorción de las superficies." data-tooltip-fx="*l* = {4*V* | *S*}">
                 <div class="param-lbl">Free mean path</div>
                 <div class="param-val" id="g-fmp">—</div>
                 <div class="param-unit">metros</div>
@@ -226,31 +243,31 @@
           <!-- Parámetros acústicos (calculados) -->
           <div id="tab-vars" class="tab-pane">
             <div class="param-grid">
-              <div class="param-card" data-tooltip="dc = 0.057·√(V/RT60). Más cerca de la fuente manda el sonido directo; más lejos, el reverberante.">
+              <div class="param-card" data-tooltip-title="Distancia crítica" data-tooltip="A esta distancia de la fuente, lo que llega directo y lo que devuelve la sala suenan igual de fuerte. Más cerca mandas tú; más lejos manda la sala. Es la distancia a la que conviene poner el micrófono o sentarse a escuchar." data-tooltip-fx="*d*_c = 0.057·√{*V* | *T*}">
                 <div class="param-lbl">Distancia crítica</div>
                 <div class="param-val" id="p-dc">—</div>
                 <div class="param-unit">metros</div>
                 <div class="param-hint">Distancia a la fuente donde el sonido directo iguala al reverberante.</div>
               </div>
-              <div class="param-card" data-tooltip="c = 331.3 + 0.606·T, con T en °C. A 20 °C son 343 m/s.">
+              <div class="param-card" data-tooltip-title="Velocidad del sonido" data-tooltip="Depende sólo de la temperatura del aire: a 20 °C son 343 m/s. De ella salen las frecuencias de los modos, así que una sala caliente resuena un poco más agudo." data-tooltip-fx="*c* = 331.3 + 0.606·*T*">
                 <div class="param-lbl">Vel. del sonido</div>
                 <div class="param-val" id="p-vsound">—</div>
                 <div class="param-unit">m/s</div>
                 <div class="param-hint">Depende de la temperatura del aire.</div>
               </div>
-              <div class="param-card" data-tooltip="Media de los coeficientes de absorción de las seis superficies, ponderada por su área y calculada banda a banda.">
+              <div class="param-card" data-tooltip-title="Absorción media" data-tooltip="Cuánto se traga la sala de media, de 0 (todo rebota) a 1 (no vuelve nada). Es la media de las seis caras pesada por su área, y se calcula banda por banda porque los materiales no absorben igual en graves que en agudos.">
                 <div class="param-lbl">α promedio</div>
                 <div class="param-val" id="p-alpha">—</div>
                 <div class="param-unit">coef. absorción</div>
                 <div class="param-hint">Absorción media ponderada por área (0 = refleja todo, 1 = absorbe todo).</div>
               </div>
-              <div class="param-card" data-tooltip="R = S·α/(1−α), en m² Sabine. Es la absorción efectiva de la sala: cuanto más alta, más seca.">
+              <div class="param-card" data-tooltip-title="Constante de sala" data-tooltip="Resume en un número la absorción efectiva de la sala. Cuanto más alta, más seca suena y menos campo reverberante hay. Se mide en metros cuadrados Sabine." data-tooltip-fx="*R* = {*S*·*α* | 1 − *α*}">
                 <div class="param-lbl">Constante R</div>
                 <div class="param-val" id="p-R">—</div>
                 <div class="param-unit">m² Sabine</div>
                 <div class="param-hint">Absorción efectiva de la sala. Más alto = sala más seca.</div>
               </div>
-              <div class="param-card" data-tooltip="f = 2000·√(RT60/V) con el RT60 de medias. Por debajo de ella el campo deja de ser difuso y Sabine pierde validez.">
+              <div class="param-card" data-tooltip-title="Frecuencia de Schroeder" data-tooltip="La frontera entre dos mundos. Por debajo, la sala suena por modos sueltos que se oyen uno a uno. Por encima hay tantos que se mezclan y empiezan a valer las fórmulas estadísticas como Sabine." data-tooltip-fx="*f*_s = 2000·√{*T* | *V*}">
                 <div class="param-lbl">Frec. Schroeder</div>
                 <div class="param-val" id="p-schroeder">—</div>
                 <div class="param-unit">Hz</div>
@@ -275,17 +292,35 @@
             <div class="rt-chart-title">RT60 — Frecuencia vs Tiempo de Reverberación</div>
             <div id="rt-chart"></div>
 
+            <!-- De dónde sale la curva: historia del modelo, su fórmula
+                 compuesta y cuándo deja de valer. Ocupa el hueco que el
+                 rediseño dejó bajo el gráfico, porque la columna derecha
+                 es alta y fija y la de análisis se estira para acompañarla. -->
+            <div class="fx-card" id="decay-origen">
+              <div class="fx-card-head">
+                <div class="fx-card-kicker">De dónde sale esta curva</div>
+                <div class="fx-card-title" id="decay-origen-title">—</div>
+              </div>
+              <p class="fx-card-body" id="decay-origen-body"></p>
+              <div class="fx-card-eqs" id="decay-origen-eqs"></div>
+              <div class="fx-card-legend" id="decay-origen-legend"></div>
+              <div class="fx-card-when">
+                <span class="fx-card-when-lbl">Cuándo usarlo</span>
+                <span id="decay-origen-when"></span>
+              </div>
+            </div>
+
           </div>
 
           <!-- Modos -->
           <div id="tab-modos" class="tab-pane">
             <div class="modos-head">
-              <div class="schroeder-lbl" data-tooltip="Por debajo de esta frecuencia mandan los modos individuales; por encima, el campo estadístico.">Frecuencia de Schroeder: <strong id="schroeder-val">—</strong></div>
+              <div class="schroeder-lbl" data-tooltip-title="Frecuencia de Schroeder" data-tooltip="Por debajo de aquí la sala suena por resonancias sueltas, que se oyen una a una. Por encima hay tantas que se mezclan en un campo parejo, y es ahí donde valen Sabine y Eyring.">Frecuencia de Schroeder: <strong id="schroeder-val">—</strong></div>
               <div class="zone-hint">zona modal ↓ · zona estadística →</div>
             </div>
             <div class="modes-view-tabs" role="tablist" aria-label="Vista de modos">
-              <button class="modes-view-btn active" type="button" role="tab" aria-selected="true" onclick="setModesView('histogram',this)" data-tooltip="Cuántos modos caen en cada banda de un tercio de octava, separados por tipo.">Histograma</button>
-              <button class="modes-view-btn" type="button" role="tab" aria-selected="false" onclick="setModesView('visualization',this)" data-tooltip="La lista de modos uno a uno. Pulsa una frecuencia para ver su patrón en el cubo 3D.">Visualización</button>
+              <button class="modes-view-btn active" type="button" role="tab" aria-selected="true" onclick="setModesView('histogram',this)" data-tooltip-title="Histograma" data-tooltip="Cuántas resonancias caen en cada banda de un tercio de octava, separadas por tipo. Sirve para ver si están bien repartidas o se amontonan en unas pocas frecuencias.">Histograma</button>
+              <button class="modes-view-btn" type="button" role="tab" aria-selected="false" onclick="setModesView('visualization',this)" data-tooltip-title="Visualización" data-tooltip="La lista de resonancias una a una. Pulsa una frecuencia y el cubo 3D te enseña dónde esa resonancia suena fuerte y dónde casi no se oye.">Visualización</button>
             </div>
 
             <div class="modes-view-pane active" id="modes-view-histogram">
@@ -347,7 +382,7 @@
 
             <div class="ebu-prop-card">
               <div class="ebu-prop-head">
-                <div class="ebu-prop-title" data-tooltip="Segundo criterio de proporciones, de la misma norma de la que sale el objetivo de RT60. Bolt es una región dibujada; esto son tres desigualdades.">Proporciones de EBU Tech 3276</div>
+                <div class="ebu-prop-title" data-tooltip-title="Proporciones de EBU" data-tooltip="Tres condiciones que la norma pone a las medidas de la sala. Son la misma idea que Bolt — que las tres dimensiones no se parezcan demasiado — pero escritas como desigualdades en vez de dibujadas como una región.">Proporciones de EBU Tech 3276</div>
                 <span class="chip" id="ebu-prop-chip">—</span>
               </div>
               <div id="ebu-prop-rows"></div>
@@ -389,18 +424,18 @@
           <div class="summary-head">
             <div>
               <div class="summary-kicker">RT60 medio · Sabine · 125 Hz – 4 kHz</div>
-              <div class="summary-rt" data-tooltip="Media de las seis bandas de octava de 125 Hz a 4 kHz, por Sabine. El veredicto no usa esta cifra sino T_m, de 250 Hz a 4 kHz."><span id="s-rt">—</span><small>s</small></div>
-              <div class="summary-sub" id="s-dims" data-tooltip="Largo × Ancho × Alto, las medidas interiores que se usaron en el cálculo.">—</div>
+              <div class="summary-rt" data-tooltip-title="RT60 medio" data-tooltip="La media de las seis bandas de octava, de 125 Hz a 4 kHz, calculada por Sabine. Es un resumen para hacerse una idea; el veredicto de la norma no usa esta cifra sino la media de 250 Hz a 4 kHz, que deja fuera los graves."><span id="s-rt">—</span><small>s</small></div>
+              <div class="summary-sub" id="s-dims" data-tooltip-title="Medidas" data-tooltip="Largo, ancho y alto por dentro, de superficie a superficie. Son las que se usaron en el cálculo.">—</div>
             </div>
-            <span class="chip" id="s-chip" data-tooltip="El peor de los dos criterios de EBU Tech 3276: T_m entre 0.2 y 0.4 s, y las seis bandas dentro de la brecha de tolerancia.">—</span>
+            <span class="chip" id="s-chip" data-tooltip-title="Veredicto" data-tooltip="Se queda con el peor de los dos criterios de EBU Tech 3276: que el tiempo medio esté entre 0.2 y 0.4 s, y que ninguna de las seis bandas se salga de su franja de tolerancia. Basta con que falle uno para que baje la nota.">—</span>
           </div>
           <div class="summary-stats">
-            <div class="summary-stat" data-tooltip="L × A × H. De aquí sale el valor orientativo de la fórmula de EBU, 0.25·(V/100)^(1/3)."><div class="summary-stat-lbl">Volumen</div><div class="summary-stat-val"><span id="s-vol">—</span><small>m³</small></div></div>
-            <div class="summary-stat" data-tooltip="Suma de las seis superficies. Multiplicada por el α medio da la absorción total de la sala."><div class="summary-stat-lbl">Área total</div><div class="summary-stat-val"><span id="s-area">—</span><small>m²</small></div></div>
-            <div class="summary-stat" data-tooltip="Fija la velocidad del sonido y, con ella, la absorción del aire en las bandas altas."><div class="summary-stat-lbl">Temperatura</div><div class="summary-stat-val"><span id="s-temp">—</span><small>°C</small></div></div>
+            <div class="summary-stat" data-tooltip-title="Volumen" data-tooltip="Largo por ancho por alto. De aquí sale el tiempo de reverberación que la norma da como orientación para una sala de este tamaño: cuanto más grande, más se le permite reverberar." data-tooltip-fx="*T* = 0.25·{*V* | 100}^{1/3}"><div class="summary-stat-lbl">Volumen</div><div class="summary-stat-val"><span id="s-vol">—</span><small>m³</small></div></div>
+            <div class="summary-stat" data-tooltip-title="Área total" data-tooltip="La suma de las seis caras. Multiplicada por la absorción media da la absorción total de la sala, que es lo que de verdad decide cuánto dura la reverberación."><div class="summary-stat-lbl">Área total</div><div class="summary-stat-val"><span id="s-area">—</span><small>m²</small></div></div>
+            <div class="summary-stat" data-tooltip-title="Temperatura" data-tooltip="Fija la velocidad del sonido y, con ella, las frecuencias de los modos y cuánto absorbe el propio aire en las bandas agudas."><div class="summary-stat-lbl">Temperatura</div><div class="summary-stat-val"><span id="s-temp">—</span><small>°C</small></div></div>
           </div>
           <div class="note summary-note" id="s-note">—</div>
-          <div class="summary-foot">El veredicto sigue a EBU Tech 3276: T<sub>m</sub> entre 0.2 y 0.4 s, y las seis bandas dentro de su brecha de tolerancia.</div>
+          <div class="summary-foot">Se juzga con EBU Tech 3276, la norma europea para salas de escucha: pide que el tiempo medio quede entre 0.2 y 0.4 s y que ninguna banda se salga de la franja de tolerancia.</div>
           <div class="summary-actions">
             <button class="recalc-btn" type="button" onclick="window.location.href='simulator.html'">Editar sala y recalcular</button>
           </div>
@@ -414,6 +449,7 @@
 <script src="js/three.min.js"></script>
 <script src="js/OrbitControls.js"></script>
 <script src="js/aqengine.js"></script>
+<script src="js/formulas.js"></script>
 <script src="js/app.js"></script>
 <script src="js/results.js"></script>
 <script src="js/renderer.js"></script>

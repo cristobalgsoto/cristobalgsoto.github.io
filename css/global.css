@@ -156,7 +156,7 @@ body {
 .aq-tooltip {
   position: fixed;
   z-index: 3000;
-  max-width: min(260px, calc(100vw - 24px));
+  max-width: min(300px, calc(100vw - 24px));
   padding: 9px 11px 9px 13px;
   border: 1px solid var(--accent);
   border-radius: 6px;
@@ -164,8 +164,8 @@ body {
   box-shadow: 0 8px 22px rgba(0,0,0,0.4), inset 3px 0 0 var(--accent);
   color: var(--text2);
   font-family: var(--font-mono);
-  font-size: 10px;
-  line-height: 1.4;
+  font-size: 12px;
+  line-height: 1.55;
   pointer-events: none;
   opacity: 0;
   transform: translateY(4px);
@@ -629,15 +629,19 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.25); }
 
 /* ── NOTES ── */
 .note {
-  padding: 11px 14px;
+  padding: 12px 14px;
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: 12.5px;
   font-family: var(--font-mono);
-  line-height: 1.6;
+  line-height: 1.7;
   margin-top: 12px;
-  color: var(--text3);
+  color: var(--text2);
   background: var(--surface2);
 }
+/* La frase de cabeza de la nota va destacada: dice QUÉ le pasa a la sala
+   antes de dar la cifra, y es lo que hay que poder leer de un vistazo. */
+.note b { color: var(--text); font-weight: 600; }
+.note i { color: var(--text3); font-style: italic; }
 
 /* ── RECALC OVERLAY ── */
 .recalc-overlay {
@@ -833,7 +837,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.25); }
 .modes-view-btn.active { background:var(--accent); color:var(--bg); }
 .modes-view-pane { display:none; }
 .modes-view-pane.active { display:block; animation:fadeUp 0.2s ease; }
-.modes-help,.histogram-help { max-width:760px; margin:-6px 0 16px; color:var(--text3); font-size:11px; line-height:1.55; }
+.modes-help,.histogram-help { max-width:760px; margin:-6px 0 16px; color:var(--text3); font-size:12.5px; line-height:1.7; }
 .histogram-help { margin:-4px 0 16px; }
 
 /* ── GEO SURFACES ── */
@@ -1125,3 +1129,86 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.25); }
 @media (max-width:720px) {
   .three-camera-controls { right:8px; bottom:8px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   FÓRMULAS — compuestas como las del editor de ecuaciones de Word
+   ══════════════════════════════════════════════════════════════════
+   Cambria, variables en cursiva, números y operadores en redonda, y las
+   fracciones apiladas con su raya en medio. Sin LaTeX ni librerías de
+   maquetación matemática: la misma pantalla existe en Unity con
+   TextMeshPro, que no entiende LaTeX, y lo que sí se reproduce allí son
+   cajas — una fila, una columna y una raya. Ver js/formulas.js. */
+.fx {
+  display: inline-flex;
+  align-items: center;
+  font-family: Cambria, 'Cambria Math', Georgia, 'Times New Roman', serif;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text);
+  white-space: nowrap;
+}
+.fx i { font-style: italic; }
+.fx .fx-op  { padding: 0 0.3em; }
+.fx .fx-esp { width: 0.26em; }
+/* El subindice baja con un margen superior, no con align-self: dentro de
+   una fila centrada el margen desplaza el glifo hacia abajo, y eso es un
+   offset que en Unity se reproduce tal cual. */
+.fx .fx-sub {
+  font-size: 0.64em;
+  font-style: italic;
+  margin-top: 0.62em;
+}
+/* La fracción: numerador arriba, raya, denominador debajo. La raya es el
+   borde del denominador y no un elemento aparte, para que su ancho sea
+   exactamente el de la caja más ancha de las dos. */
+.fx .fx-frac {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 0.24em;
+}
+.fx .fx-num { display: inline-flex; align-items: center; padding: 0 0.4em 3px; }
+.fx .fx-den { display: inline-flex; align-items: center; padding: 3px 0.4em 0; border-top: 1px solid currentColor; }
+
+.fx-lg { font-size: 19px; }
+.fx-sm { font-size: 13px; }
+
+/* ══ GLOBO DE AYUDA ══ */
+/* Con título, cuerpo y, si hace falta, una fórmula compuesta. El cuerpo
+   explica primero QUÉ es la cifra; la fórmula viene después, para quien
+   la quiera, y no al revés. */
+.aq-tip-title {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.aq-tooltip .fx { font-size: 13px; color: var(--text); }
+.aq-tip-fx {
+  display: block;
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid var(--border2);
+}
+
+/* Raíz: el signo, y encima del contenido la línea que lo cubre. Es un
+   borde superior, igual que la raya de la fracción. */
+.fx .fx-raiz { font-size: 1.15em; margin-right: -0.04em; }
+.fx .fx-radicando {
+  display: inline-flex;
+  align-items: center;
+  border-top: 1px solid currentColor;
+  padding: 2px 0.18em 0 0.1em;
+}
+.fx .fx-sup {
+  font-size: 0.64em;
+  margin-bottom: 0.62em;
+}
+
+/* Un símbolo suelto dentro de prosa corriente (la leyenda de la tarjeta
+   de Decay): misma tipografía que las fórmulas, para que la S de la
+   explicación sea la misma S que la de la ecuación. */
+.fx-en-texto { font-family: Cambria, 'Cambria Math', Georgia, serif; font-style: italic; color: var(--text2); }

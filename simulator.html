@@ -58,7 +58,7 @@
       <div class="wc-desc">Define las dimensiones del recinto rectangular a simular.</div>
 
       <div class="field-group">
-        <label class="field-label" data-tooltip="Medidas interiores, de superficie a superficie. De aquí salen el volumen, el área total y las proporciones de Bolt.">Dimensiones</label>
+        <label class="field-label" data-tooltip-title="Medidas de la sala" data-tooltip="Por dentro, de superficie a superficie. De aquí salen el volumen, el área total y las proporciones que luego se comparan con la región de Bolt.">Dimensiones</label>
         <div class="field-row-3">
           <div>
             <div class="field-wrap">
@@ -105,7 +105,7 @@
       <div class="wc-desc">La temperatura afecta directamente la velocidad de propagación del sonido en el aire.</div>
 
       <div class="field-group">
-        <label class="field-label" data-tooltip="c = 331.3 + 0.606·T. Cambia la velocidad del sonido y, con ella, las frecuencias de los modos y la absorción del aire en agudos.">Temperatura del aire</label>
+        <label class="field-label" data-tooltip-title="Temperatura del aire" data-tooltip="Cambia la velocidad del sonido y, con ella, las frecuencias a las que resuena la sala y lo que absorbe el aire en las bandas agudas." data-tooltip-fx="*c* = 331.3 + 0.606·*T*">Temperatura del aire</label>
         <div class="slider-row">
           <!-- ✅ Rango: 10–30°C -->
           <input type="range" id="w-temp" min="10" max="30" value="20"
@@ -221,11 +221,11 @@
       <div class="wc-desc">¿El recinto cuenta con materiales de tratamiento acústico adicionales a la construcción base?</div>
 
       <div class="yn-grid">
-        <div class="yn-card" id="yn-yes" onclick="selectTreatment(true)" data-tooltip="Se añade un paso para indicar qué material y cuántos m² cubre en cada superficie. El tratamiento sólo cubre parte: por eso se pide el área.">
+        <div class="yn-card" id="yn-yes" onclick="selectTreatment(true)" data-tooltip-title="Con tratamiento" data-tooltip="Se añade un paso para decir qué material absorbente pones en cada cara y cuántos metros cuadrados cubre. Hace falta el área porque el tratamiento casi nunca cubre la pared entera. Habilita además los modelos de Fitzroy y Millington.">
           <div class="yn-label">Sí</div>
           <div class="yn-desc">paneles, espuma, alfombra, cortinas...</div>
         </div>
-        <div class="yn-card" id="yn-no" onclick="selectTreatment(false)" data-tooltip="La absorción sale sólo de los materiales de construcción de las seis superficies.">
+        <div class="yn-card" id="yn-no" onclick="selectTreatment(false)" data-tooltip-title="Sin tratamiento" data-tooltip="La absorción sale sólo de los materiales de construcción de las seis caras. Fitzroy y Millington necesitan tratamiento definido, así que no estarán disponibles.">
           <div class="yn-label">No</div>
           <div class="yn-desc">solo materiales de construcción</div>
         </div>
@@ -345,6 +345,7 @@
 <script src="js/three.min.js"></script>
 <script src="js/OrbitControls.js"></script>
 <script src="js/aqengine.js"></script>
+<script src="js/formulas.js"></script>
 <script src="js/app.js"></script>
 <script src="js/wizard.js"></script>
 <script src="js/simulator-renderer.js"></script>

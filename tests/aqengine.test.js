@@ -334,7 +334,11 @@ test('EBU: la brecha mide PLANITUD; el rango de T_m mide nivel', () => {
   assert.equal(l.claseTm, 'bad');
   assert.equal(l.clase, 'bad', 'el veredicto es el peor de los dos');
   assert.ok(l.etiqueta.includes('fuera de'), l.etiqueta);
-  assert.ok(l.nota.includes('tratamiento absorbente'), l.nota);
+  // Se comprueba QUÉ dice la nota, no cómo lo dice: la cifra juzgada,
+  // los dos topes de la norma y la salida que se le propone a quien lee.
+  assert.ok(l.nota.includes('1.20'), 'la nota trae el T_m que se ha juzgado');
+  assert.ok(l.nota.includes('0.2') && l.nota.includes('0.4'), 'y los dos topes');
+  assert.ok(/absorbente/.test(l.nota), 'y dice qué hacer con la sala');
 });
 
 test('EBU: con T_m en rango, el veredicto cuenta bandas y las nombra', () => {
@@ -378,7 +382,9 @@ test('EBU: la insignia y la nota salen de la misma cuenta', () => {
       assert.equal(l.etiqueta, `${l.dentro}/6 bandas en brecha`);
     } else {
       assert.ok(l.etiqueta.includes('fuera de'), l.etiqueta);
-      assert.ok(l.nota.includes('rango'), l.nota);
+      // La nota y la insignia salen de la MISMA cuenta: si la insignia
+      // dice que esta fuera, la nota tiene que traer ese mismo T_m.
+      assert.ok(l.nota.includes(l.tm.toFixed(2)), l.nota);
     }
   }
 });

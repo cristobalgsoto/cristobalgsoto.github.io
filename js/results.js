@@ -1,13 +1,78 @@
+// ════════════════════════════════════════════════════════════════
+// LOS CUATRO MODELOS DE RT60
+//
+// Cada uno trae, además de lo que necesita el gráfico, el texto que se
+// enseña en la tarjeta de origen bajo la curva: de dónde salió la
+// fórmula, qué supone y cuándo deja de valer.
+//
+// Las cuatro fórmulas estan escritas CONTRA EL CÓDIGO de aqengine.js, no
+// contra el libro: todas llevan el término de aire 4mV porque el motor lo
+// calcula, y las cuatro comparten la misma T para que se vea que lo único
+// que cambia de un modelo a otro es cómo se cuenta la absorción A.
+// ════════════════════════════════════════════════════════════════
+
+// La fórmula del tiempo es la misma en los cuatro. Lo que cambia es A.
+const FX_TIEMPO = '*T* = {0.161·*V* | *A* + 4*mV*}';
+
 const DECAY_METHODS = {
-  sabine: { key: 'RT_sabine', color: '#FF8C00', label: 'Sabine', always: true,
-    tip: 'T = 0.161·V/A. Supone el campo difuso y la absorción bien repartida; se queda corto cuando el α medio pasa de ~0.2.' },
-  eyring: { key: 'RT_eyring', color: '#3A7BFF', label: 'Eyring', always: true,
-    tip: 'T = 0.161·V/(−S·ln(1−α)). Corrige a Sabine en salas absorbentes: con α pequeño las dos coinciden.' },
-  fitzroy: { key: 'RT_fitzroy', color: '#00CC66', label: 'Fitzroy', always: false,
-    tip: 'Promedia por pares de superficies paralelas. Para salas donde la absorción está muy desigual entre los tres ejes.' },
-  millington: { key: 'RT_millington', color: '#FF4444', label: 'Millington', always: false,
-    tip: 'Aplica −ln(1−α) superficie a superficie. Castiga mucho las superficies de α alto y da el RT60 más corto.' },
+  sabine: {
+    key: 'RT_sabine', color: '#FF8C00', label: 'Sabine', always: true,
+    anio: 1898,
+    titulo: 'Sabine · 1898',
+    tip: 'El modelo original y el más usado. Reparte la absorción por igual por toda la sala y da el tiempo que tarda el sonido en caer 60 dB.',
+    historia:
+      'En 1895 la sala de conferencias del museo Fogg, en Harvard, era inservible: una palabra seguía sonando cuando el orador ya llevaba cinco más. El encargo le cayó a Wallace Clement Sabine, un profesor ayudante de física de veintisiete años. Trabajó de noche, cuando el edificio callaba, arrastrando los cojines de los bancos del Sanders Theatre de un lado a otro para ir cambiando la absorción de la sala, y midiendo con un tubo de órgano y un cronómetro cuánto tardaba el sonido en dejar de oírse. De ahí salió la primera ley de la acústica de salas: el tiempo de caída sube con el volumen y baja con la absorción. Y de ahí salió, en 1900, el Boston Symphony Hall, la primera sala de conciertos del mundo calculada antes de levantarla. Sigue siendo una de las mejores.',
+    cuando:
+      'Es el modelo de referencia, y el que usa AQVIS para el resumen: los coeficientes de absorción tabulados se miden en cámara reverberante por el método del propio Sabine, así que devolverlos a su ecuación es lo coherente. Se queda largo cuando la sala absorbe mucho, porque su fórmula nunca llega a cero aunque las paredes se lo traguen todo.',
+    fxA: '*A* = Σ *S*_i·*α*_i',
+  },
+
+  eyring: {
+    key: 'RT_eyring', color: '#3A7BFF', label: 'Eyring', always: true,
+    anio: 1930,
+    titulo: 'Eyring · 1930',
+    tip: 'Corrige a Sabine en salas muy absorbentes. Cuenta el sonido por rebotes en vez de como algo continuo, así que si todo se absorbe el tiempo sí llega a cero.',
+    historia:
+      'Treinta años después, el cine sonoro necesitaba salas «muertas» donde grabar, y en los Bell Telephone Laboratories las estaban construyendo. En esas salas la fórmula de Sabine daba siempre más tiempo del que se medía. Carl F. Eyring publicó en 1930 el porqué: Sabine trata la absorción como algo continuo, y el sonido en realidad se va a saltos, un rebote cada vez, y en cada rebote se queda la fracción que no se absorbió. Contarlo así cambia una proporción por un logaritmo, y el resultado hace lo que tiene que hacer: si las paredes se lo tragan todo, el sonido se acaba en el primer rebote.',
+    cuando:
+      'Gana a Sabine cuando la absorción media pasa de 0.2 más o menos. Por debajo de ahí las dos dicen lo mismo, porque para valores pequeños −ln(1−α) y α son casi el mismo número.',
+    fxA: '*A* = −*S*·ln(1 − *α*)',
+  },
+
+  fitzroy: {
+    key: 'RT_fitzroy', color: '#00CC66', label: 'Fitzroy', always: false,
+    anio: 1959,
+    titulo: 'Fitzroy · 1959',
+    tip: 'Para salas con la absorción mal repartida: alfombra en el suelo y techo y paredes duros. Calcula cada eje por separado y promedia.',
+    historia:
+      'Los tres modelos anteriores suponen que el sonido llega a todas partes por igual. Daniel Fitzroy publicó en 1959 que eso se rompe en cuanto la absorción está mal repartida, que es el caso de casi cualquier sala real: alfombra en el suelo, y techo y paredes duros. Ahí el sonido no decae igual en las tres direcciones — muere rápido entre suelo y techo y sigue rebotando entre las paredes — y una sola cifra media no describe nada. Su idea fue calcular el tiempo de cada eje por separado, con el par de planos paralelos de ese eje, y promediar los tres pesando cada uno por la superficie que ocupa.',
+    cuando:
+      'Úsalo cuando el tratamiento esté concentrado en unas pocas superficies. Si la absorción está bien repartida los tres ejes coinciden y Fitzroy devuelve prácticamente lo mismo que Eyring. Necesita tratamiento definido, por eso no aparece sin él.',
+    fxA: '*A* = *S*·Σ_k {*S*_k | *S*}·(−ln(1 − *α*_k))',
+  },
+
+  millington: {
+    key: 'RT_millington', color: '#FF4444', label: 'Millington', always: false,
+    anio: 1932,
+    titulo: 'Millington · 1932',
+    tip: 'Aplica la cuenta de Eyring superficie por superficie en vez de sobre el α medio. Es la más fina sobre el papel y la que da el tiempo más corto.',
+    historia:
+      'Eyring arregla lo del rebote, pero sigue usando un solo α medio para toda la sala. G. Millington señaló en 1932 — y W. J. Sette casi a la vez, por eso a veces se la llama Millington-Sette — que eso no es lo mismo que promediar bien: el logaritmo de la media no es la media de los logaritmos. Su propuesta es hacer la cuenta de Eyring superficie por superficie y sumar después, que sobre el papel es lo correcto.',
+    cuando:
+      'Es la más exacta en teoría y la más frágil en la práctica: basta con que una sola superficie absorba del todo para que su logaritmo se dispare y la fórmula dé cero, por pequeña que sea esa superficie. Castiga mucho los materiales muy absorbentes, así que casi siempre da el RT60 más corto de los cuatro. Necesita tratamiento definido.',
+    fxA: '*A* = Σ *S*_i·(−ln(1 − *α*_i))',
+  },
 };
+
+// La leyenda de símbolos, común a las cuatro. Va al pie de la tarjeta
+// porque una fórmula sin saber qué es cada letra no explica nada.
+const FX_LEYENDA = [
+  ['*T*', 'tiempo de reverberación, en segundos'],
+  ['*V*', 'volumen de la sala (m³)'],
+  ['*S*', 'superficie total; *S*_i la de cada cara y *S*_k la de cada par de caras paralelas'],
+  ['*α*', 'coeficiente de absorción, de 0 a 1; sin subíndice, el medio ponderado por área'],
+  ['4*mV*', 'lo que absorbe el propio aire, que sólo pesa en las bandas agudas'],
+];
 
 let decayMethod = 'sabine';
 let currentResultInput = null;
@@ -32,8 +97,57 @@ function renderDecayToggle(res) {
     const tip = Number.isFinite(tm)
       ? `${method.tip} · T_m = ${tm.toFixed(2)} s`
       : method.tip;
-    return `<button type="button" class="mtog-btn${key === decayMethod ? ' active' : ''}" onclick="setDecayMethod('${key}')" data-tooltip="${tip}">${status}${method.label}</button>`;
+    return `<button type="button" class="mtog-btn${key === decayMethod ? ' active' : ''}" onclick="setDecayMethod('${key}')" data-tooltip-title="${method.titulo}" data-tooltip="${tip}">${status}${method.label}</button>`;
   }).join('');
+}
+
+/**
+ * La tarjeta de origen bajo la curva: de dónde salió el modelo que está
+ * seleccionado, su fórmula compuesta y cuándo deja de valer.
+ *
+ * Ocupa el hueco que el rediseño dejó bajo el gráfico — la columna
+ * derecha es alta y fija, así que la de análisis se estiraba para
+ * acompañarla y la pestaña de Decay se quedaba medio vacía.
+ */
+function renderDecayOrigen(clave) {
+  // Envuelta a propósito: esta tarjeta es informativa, y si algo falla
+  // dentro NO puede llevarse por delante el gráfico. Ya pasó — una
+  // expresión regular mal escrita aquí dejó la curva de RT60 en blanco,
+  // porque la llamada que la dibuja venía justo detrás.
+  try {
+    pintarDecayOrigen(clave);
+  } catch (error) {
+    console.error('No se pudo pintar la tarjeta de origen del modelo.', error);
+  }
+}
+
+function pintarDecayOrigen(clave) {
+  const m = DECAY_METHODS[clave];
+  const card = document.getElementById('decay-origen');
+  if (!m || !card) return;
+
+  const pon = (id, texto) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = texto;
+  };
+  pon('decay-origen-title', m.titulo);
+  pon('decay-origen-body', m.historia);
+  pon('decay-origen-when', m.cuando);
+
+  const eqs = document.getElementById('decay-origen-eqs');
+  if (eqs) {
+    eqs.innerHTML =
+      `<div class="fx-row">${fx(FX_TIEMPO, 'fx-lg')}</div>` +
+      `<div class="fx-where">donde la absorción equivalente vale</div>` +
+      `<div class="fx-row">${fx(m.fxA, 'fx-lg')}</div>`;
+  }
+
+  const ley = document.getElementById('decay-origen-legend');
+  if (ley) {
+    ley.innerHTML = FX_LEYENDA
+      .map(([simbolo, que]) => `<div class="fx-leg-item">${fx(simbolo, 'fx-sm')}<span>${fxTexto(que)}</span></div>`)
+      .join('');
+  }
 }
 
 function setDecayMethod(method) {
@@ -46,6 +160,7 @@ function setDecayMethod(method) {
     if (!result) return;
     renderDecayToggle(result);
     renderRT60Chart(result, decayMethod);
+    renderDecayOrigen(decayMethod);
     const label = document.getElementById('decay-3d-label');
     if (label) label.textContent = `Reflexiones 3D: ${DECAY_METHODS[decayMethod].label}`;
     if (typeof _threeState !== 'undefined' && _threeState?.setDecay) {
@@ -132,7 +247,7 @@ function renderRT60Chart(res, method) {
     if (idx >= 0 && idx <= BANDS.length - 1) {
       const sx = pad.left + (idx / (BANDS.length - 1)) * innerWidth;
       schroederMarkup =
-        `<line x1="${sx.toFixed(1)}" y1="${pad.top}" x2="${sx.toFixed(1)}" y2="${(pad.top + innerHeight).toFixed(1)}" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5,3" data-tooltip="Frecuencia de Schroeder: ${Math.round(res.schroeder)} Hz. Por debajo mandan los modos individuales y el campo deja de ser difuso."/>` +
+        `<line x1="${sx.toFixed(1)}" y1="${pad.top}" x2="${sx.toFixed(1)}" y2="${(pad.top + innerHeight).toFixed(1)}" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5,3" data-tooltip-title="Frecuencia de Schroeder" data-tooltip="Está en ${Math.round(res.schroeder)} Hz. A su izquierda la sala suena por resonancias sueltas y el campo no es parejo, así que todo lo que se dibuja en esa zona vale menos."/>` +
         `<text x="${sx.toFixed(1)}" y="${(pad.top - 4).toFixed(1)}" text-anchor="middle" font-size="10" fill="var(--accent)" font-family="var(--font-mono)">Schroeder</text>`;
     }
   }
@@ -146,7 +261,7 @@ function renderRT60Chart(res, method) {
     const abajo = lm.brecha.map((m, i) => `L ${x(lm.brecha.length - 1 - i).toFixed(1)},${y(lm.brecha[lm.brecha.length - 1 - i].min).toFixed(1)}`).join(' ');
     const centro = y(lm.tm).toFixed(1);
     brechaMarkup =
-      `<path d="${arriba} ${abajo} Z" fill="rgba(240,240,240,0.055)" stroke="none" data-tooltip="Brecha de tolerancia de EBU Tech 3276 alrededor de T_m = ${lm.tm.toFixed(2)} s"/>` +
+      `<path d="${arriba} ${abajo} Z" fill="rgba(240,240,240,0.055)" stroke="none" data-tooltip-title="Franja de tolerancia" data-tooltip="Lo que EBU Tech 3276 da por bueno alrededor del tiempo medio de esta sala, ${lm.tm.toFixed(2)} s. Se ensancha hacia los graves porque allí se admite más reverberación."/>` +
       `<path d="${arriba}" fill="none" stroke="var(--text3)" stroke-width="1" stroke-dasharray="5,4" opacity="0.7"/>` +
       `<line x1="${x(0).toFixed(1)}" y1="${y(lm.brecha[0].min).toFixed(1)}" x2="${x(lm.brecha.length - 1).toFixed(1)}" y2="${y(lm.brecha[0].min).toFixed(1)}" stroke="var(--text3)" stroke-width="1" stroke-dasharray="5,4" opacity="0.7"/>` +
       `<line x1="${x(0).toFixed(1)}" y1="${centro}" x2="${x(lm.brecha.length - 1).toFixed(1)}" y2="${centro}" stroke="var(--text3)" stroke-width="1" stroke-dasharray="2,3" opacity="0.5"/>`;
@@ -193,6 +308,7 @@ function showTab(name, button) {
 
   if (name === 'decay' && result) {
     renderDecayToggle(result);
+    renderDecayOrigen(decayMethod);
     requestAnimationFrame(() => renderRT60Chart(result, decayMethod));
   }
 
