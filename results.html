@@ -55,7 +55,6 @@
        para que no se confunda con él: Bolt es una región dibujada y esto son
        tres desigualdades. */
     .ebu-prop-card { background:var(--surface2); box-shadow:var(--shadow-card); border-radius:var(--radius-sm); padding:18px 20px 16px; margin-top:20px; }
-    .ebu-prop-card--top { margin-top:0; margin-bottom:16px; }
     .ebu-prop-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
     .ebu-prop-title { font-size:10px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--text3); font-family:var(--font-mono); }
     .ebu-prop-row { display:flex; align-items:baseline; gap:10px; padding:7px 0; border-top:1px solid var(--border2); }
@@ -284,19 +283,6 @@
               <div class="schroeder-lbl" data-tooltip="Por debajo de esta frecuencia mandan los modos individuales; por encima, el campo estadístico.">Frecuencia de Schroeder: <strong id="schroeder-val">—</strong></div>
               <div class="zone-hint">zona modal ↓ · zona estadística →</div>
             </div>
-            <div class="ebu-prop-card ebu-prop-card--top">
-              <div class="ebu-prop-head">
-                <div class="ebu-prop-title" data-tooltip="Bolt y las proporciones de EBU miran la forma de la sala y son adimensionales. Estos dos miran los modos ya calculados, así que dependen del tamaño absoluto.">Distribución modal</div>
-                <span class="chip" id="modal-chip">—</span>
-              </div>
-              <div id="modal-rows"></div>
-              <div class="ebu-prop-foot">
-                Bonello (1981) y Gilford (1959). Pendientes de verificación
-                bibliográfica: los umbrales están puestos con los valores que
-                se citan habitualmente.
-              </div>
-            </div>
-
             <div class="modes-view-tabs" role="tablist" aria-label="Vista de modos">
               <button class="modes-view-btn active" type="button" role="tab" aria-selected="true" onclick="setModesView('histogram',this)" data-tooltip="Cuántos modos caen en cada banda de un tercio de octava, separados por tipo.">Histograma</button>
               <button class="modes-view-btn" type="button" role="tab" aria-selected="false" onclick="setModesView('visualization',this)" data-tooltip="La lista de modos uno a uno. Pulsa una frecuencia para ver su patrón en el cubo 3D.">Visualización</button>
@@ -321,7 +307,6 @@
               <div class="modes-type-tabs" id="modes-type-tabs" role="tablist" aria-label="Tipo de modo"></div>
               <div class="modes-cols" id="modes-cols"></div>
             </div>
-
           </div>
 
           <!-- Región de Bolt — gráfico generado por JS desde aqengine.js -->
